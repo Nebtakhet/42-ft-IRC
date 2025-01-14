@@ -1,0 +1,96 @@
+Basic Connection Commands
+/connect <server> [port]
+Connect to an IRC server. Example: /connect irc.libera.chat 6667
+
+/disconnect
+Disconnect from the current server.
+
+/server <server> [port]
+Switch to a different server or connect to one. Example: /server irc.oftc.net
+
+/quit [message]
+Exit Irssi with an optional quit message. Example: /quit See you later!
+
+Channel Management
+/join <#channel>
+Join a channel. Example: /join #programming
+
+/part [#channel] [message]
+Leave a channel with an optional message. Example: /part #programming Goodbye!
+
+/topic [#channel] <new topic>
+Set or view the channel topic. Example: /topic #programming Open Source discussion.
+
+/names [#channel]
+List all users in a channel. Example: /names #general
+
+/kick <nickname> [reason]
+Remove a user from a channel. Example: /kick John Spamming
+
+/invite <nickname> <#channel>
+Invite a user to a channel. Example: /invite Sarah #general
+
+User Interaction
+/msg <nickname> <message>
+Send a private message to a user. Example: /msg Alice Hello!
+
+/notice <nickname/channel> <message>
+Send a notice (like a private message but less intrusive). Example: /notice #general Important update!
+
+/whois <nickname>
+View information about a user. Example: /whois Bob
+
+/whowas <nickname>
+View information about a user who was recently online.
+
+/ignore <nickname>
+Ignore messages from a user. Example: /ignore Troll123
+
+/unignore <nickname>
+Remove a user from the ignore list. Example: /unignore Troll123
+
+Server and Network Commands
+/list [search term]
+List available channels on the server. Example: /list programming
+
+/mode <target> <flags>
+Set mode for a user or channel. Example: /mode #channel +m (moderated channel).
+
+/nick <new nickname>
+Change your nickname. Example: /nick CodeMaster
+
+/away [message]
+Mark yourself as away with an optional message. Example: /away Out for lunch
+
+/back
+Clear the away status.
+
+Irssi-Specific Commands
+/window <number>
+Switch to a specific window. Example: /window 1
+
+/layout save
+Save your current window layout.
+
+/set <option> <value>
+Change Irssi settings. Example: /set theme default
+
+/help [command]
+Get help on a specific command. Example: /help join
+
+/bind <key> <command>
+Bind a key to a command.
+
+Advanced Features
+/script load <script>
+Load a custom script. Example: /script load autowhois.pl
+
+/network add <name>
+Add a network for easy reconnection. Example: /network add Libera
+
+/channel add <#channel> <network>
+Add a channel to auto-join on a network. Example: /channel add #general Libera
+
+/alias <name> <command>
+Create a shortcut command. Example: /alias j join
+
