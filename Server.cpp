@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/11 15:27:53 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/11 15:33:19 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,11 @@ void	Server::setupSocket()
 		std::cerr << "Failed to listen on socket" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+}
+
+void	Server::closeServer()
+{
+	close(serverSocket);
 }
 
 void	Server::run()
