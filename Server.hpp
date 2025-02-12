@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/11 15:30:13 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/11 15:49:20 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,8 @@
 # include <fcntl.h>
 # include <netinet/in.h>
 # include <unistd.h>
+# include <poll.h>
+# include <vector>
 
 class Server
 {
@@ -33,8 +35,10 @@ class Server
 		std::string		password;
 		int					serverSocket;
 		struct sockaddr_in serverAddress;
+		std::vector<int>	clientSockets;
 
 		void	setupSocket();
+		void	handleConnections();
 		void	closeServer();
 
 };
