@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/11 15:33:19 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/11 15:53:26 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,12 +57,31 @@ void	Server::setupSocket()
 	}
 }
 
+void	Server::handleConnections()
+{
+	struct sockaddr_in clientAddress;
+	socklen_t	clientLen = sizeof(clientAddress);
+	int clientFd = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen);
+	
+	if (clientFd >= 0)
+	{
+		clientSockets.push_back(clientFd);
+		std::cout << "New connection, fd: " << clientFd << std::endl;
+	}
+	
+}
+
 void	Server::closeServer()
 {
-	close(serverSocket);
+	if (serverSocket != -1)
+		close(serverSocket);
 }
 
 void	Server::run()
 {
 	std::cout << "Server running on port " << port << " with password " << password << std::endl;
+	while (true)
+	{
+		handleConnections();
+	}
 }
