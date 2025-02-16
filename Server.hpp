@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/11 15:49:20 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/13 11:11:34 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,14 +31,17 @@ class Server
 		void	run();
 
 	private:
-		int				port;
-		std::string		password;
-		int					serverSocket;
-		struct sockaddr_in serverAddress;
-		std::vector<int>	clientSockets;
+		int							port;
+		std::string					password;
+		int							serverSocket;
+		struct sockaddr_in			serverAddress;
+		std::vector<struct pollfd>	pollfds;
+		
 
 		void	setupSocket();
 		void	handleConnections();
+		void	handleClient(int clientFd);
+		void	removeClient(int clientFd);
 		void	closeServer();
 
 };

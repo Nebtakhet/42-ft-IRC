@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/11 15:53:26 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/12 21:47:59 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,8 @@ void	Server::setupSocket()
 		std::cerr << "Failed to listen on socket" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	pollfds.push_back({serverSocket, POLLIN, 0});
 }
 
 void	Server::handleConnections()
@@ -65,16 +67,60 @@ void	Server::handleConnections()
 	
 	if (clientFd >= 0)
 	{
-		clientSockets.push_back(clientFd);
-		std::cout << "New connection, fd: " << clientFd << std::endl;
+		fcntl(clientFd, F_SETFL, O_NONBLOCK);
+		pollfds.push_back({clientFd, POLLIN, 0});
+		std::cout << "New client connected: " << clientFd << std::endl;
 	}
 	
 }
 
+void	Server::handleClient(int clientFd)
+{
+	char	buffer[512];
+	int		bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+	
+	if (bytesRead > 0)
+	{
+		buffer[bytesRead] = '\0';
+		std::cout << "Received message from " << clientFd << ": " << buffer << std::endl;
+		send(clientFd, buffer, bytesRead, 0);
+	}
+	else if (bytesRead == 0)
+	{
+		std::cout << "Client " << clientFd << " disconnected" << std::endl;
+		close(clientFd);
+		removeClient(clientFd);
+	}
+	else
+	{
+		std::cerr << "Failed to receive message from " << clientFd << std::endl;
+		close(clientFd);
+		removeClient(clientFd);
+	}
+}	
+
+void	Server::removeClient(int clientFd)
+{
+	close(clientFd);
+	for (size_t i = 0; i < pollfds.size(); i++)
+	{
+		if (pollfds[i].fd == clientFd)
+		{
+			pollfds.erase(pollfds.begin() + i);
+			break;
+		}
+	}
+}
+
 void	Server::closeServer()
 {
-	if (serverSocket != -1)
-		close(serverSocket);
+	for (size_t i = 0; i < pollfds.size(); i++)
+	{
+		if (pollfds[i].fd != serverSocket)
+			close(pollfds[i].fd);
+	}
+	pollfds.clear();
+	close(serverSocket);
 }
 
 void	Server::run()
@@ -82,6 +128,22 @@ void	Server::run()
 	std::cout << "Server running on port " << port << " with password " << password << std::endl;
 	while (true)
 	{
-		handleConnections();
+		int ret = poll(pollfds.data(), pollfds.size(), -1);
+		if (ret == -1)
+		{
+			std::cerr << "Poll failed" << std::endl;
+			break;
+		}
+		
+		for (size_t i = 0; i < pollfds.size(); i++)
+		{
+			if (pollfds[i].revents & POLLIN)
+			{
+				if (pollfds[i].fd == serverSocket)
+					handleConnections();
+				else
+					handleClient(pollfds[i].fd);
+			}
+		}		
 	}
 }
