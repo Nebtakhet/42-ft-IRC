@@ -3,14 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:09:51 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/06 13:31:48 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/25 14:57:15 by lstorey          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
+#include "Client.hpp"
+#include "Commands.hpp"
 
 bool validPort(const char *str, int &port)
 {
@@ -51,6 +53,14 @@ int main(int argc, char **argv)
 		std::cerr << "Server error: " << e.what() << std::endl;
 		return (EXIT_FAILURE);
 	}
+
+	/*  ------ MESSAGE PARSING ------
+	
+	std::string irc_message = ":Leo PRIVMSG #channel :Hello, world!\r\n";
+    cmd_syntax parsed = parse_irc_message(irc_message);
+	
+
+	*/
 
 	return (EXIT_SUCCESS);
 }
