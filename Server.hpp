@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/20 21:26:46 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/22 13:31:14 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include <iostream>
 # include <string>
+# include <cstring>
 # include <sys/socket.h>
 # include <fcntl.h>
 # include <netinet/in.h>
