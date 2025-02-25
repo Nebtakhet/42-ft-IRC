@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/22 13:36:55 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/25 19:02:04 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,16 +116,16 @@ void	Server::handleClient(int clientFd)
 /* Function to remove a client from the pollfds vector and close the connection. */
 void	Server::removeClient(int clientFd)
 {
-	close(clientFd);
-	for (size_t i = 0; i < pollfds.size(); i++)
-	{
-		if (pollfds[i].fd == clientFd)
-		{
-			pollfds.erase(pollfds.begin() + i);
-			break;
-		}
-	}
-	clientBuffer.erase(clientFd);
+    close(clientFd);
+    for (size_t i = pollfds.size(); i-- > 0; )
+    {
+        if (pollfds[i].fd == clientFd)
+        {
+            pollfds.erase(pollfds.begin() + i);
+            break;
+        }
+    }
+    clientBuffer.erase(clientFd);
 }
 
 /* Function to close the server. It closes all client connections and the server socket. */
@@ -145,36 +145,36 @@ void	Server::closeServer()
 sends messages to clients that have messages in the clientBuffer. */
 void	Server::sendMessage()
 {
-	for (size_t i = 0; i < pollfds.size(); i++)
-	{
-		if (pollfds[i].revents & POLLOUT)
-		{
-			int clientFd = pollfds[i].fd;
-			if (clientBuffer.find(clientFd) != clientBuffer.end() && !clientBuffer[clientFd].empty())
-			{
-				std::string &message = clientBuffer[clientFd].front();
-				
-				ssize_t bytesSent = send(clientFd, message.c_str(), message.size(), 0);
-				if (bytesSent > 0)
-				{
-					message.erase(0, bytesSent);
-					if (message.empty())
-					{
-						clientBuffer[clientFd].pop();
-						if (clientBuffer[clientFd].empty())
-							pollfds[i].events &= ~POLLOUT;
-					}
-				}
-				else if (errno != EWOULDBLOCK && errno != EAGAIN)
-				{
-					std::cerr << "Failed to send message to " << clientFd << std::endl;
-					removeClient(clientFd);
-				}
-			}
-			if (clientBuffer[clientFd].empty())
-				pollfds[i].events &= ~POLLOUT;
-		}
-	}
+    for (size_t i = pollfds.size(); i-- > 0; )
+    {
+        if (pollfds[i].revents & POLLOUT)
+        {
+            int clientFd = pollfds[i].fd;
+            if (clientBuffer.find(clientFd) != clientBuffer.end() && !clientBuffer[clientFd].empty())
+            {
+                std::string &message = clientBuffer[clientFd].front();
+                
+                ssize_t bytesSent = send(clientFd, message.c_str(), message.size(), 0);
+                if (bytesSent > 0)
+                {
+                    message.erase(0, bytesSent);
+                    if (message.empty())
+                    {
+                        clientBuffer[clientFd].pop();
+                        if (clientBuffer[clientFd].empty())
+                            pollfds[i].events &= ~POLLOUT;
+                    }
+                }
+                else if (errno != EWOULDBLOCK && errno != EAGAIN)
+                {
+                    std::cerr << "Failed to send message to " << clientFd << std::endl;
+                    removeClient(clientFd);
+                }
+            }
+            if (clientBuffer[clientFd].empty())
+                pollfds[i].events &= ~POLLOUT;
+        }
+    }
 }
 
 /* Function to add a message to the clientBuffer and set the POLLOUT event. */
@@ -197,26 +197,26 @@ and handleClient when there is activity. It also calls sendMessage to send messa
 clients. */
 void	Server::run()
 {
-	std::cout << "Server running on port " << port << " with password " << password << std::endl;
-	while (true)
-	{
-		int ret = poll(pollfds.data(), pollfds.size(), -1);
-		if (ret == -1)
-		{
-			std::cerr << "Poll failed: " << strerror(errno) << std::endl;
-			break;
-		}
-		
-		for (size_t i = 0; i < pollfds.size(); i++)
-		{
-			if (pollfds[i].revents & POLLIN)
-			{
-				if (pollfds[i].fd == serverSocket)
-					handleConnections();
-				else
-					handleClient(pollfds[i].fd);
-			}
-		}
-		sendMessage();	
-	}
+    std::cout << "Server running on port " << port << " with password " << password << std::endl;
+    while (true)
+    {
+        int ret = poll(pollfds.data(), pollfds.size(), -1);
+        if (ret == -1)
+        {
+            std::cerr << "Poll failed: " << strerror(errno) << std::endl;
+            break;
+        }
+        
+        for (size_t i = pollfds.size(); i-- > 0; )
+        {
+            if (pollfds[i].revents & POLLIN)
+            {
+                if (pollfds[i].fd == serverSocket)
+                    handleConnections();
+                else
+                    handleClient(pollfds[i].fd);
+            }
+        }
+        sendMessage();	
+    }
 }
