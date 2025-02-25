@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/22 13:27:49 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/22 13:36:55 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,17 +33,15 @@ void	Server::setupSocket()
 	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (serverSocket == -1)
 	{
-		std::cerr << "Failed to create socket" << std::endl;
+		std::cerr << "Failed to create socket: " <<  strerror(errno) << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	
-	int flags = fcntl(serverSocket, F_GETFL, 0);
-	if (flags == -1)
+	if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) == -1)
 	{
-		std::cerr << "Failed to get socket flags" << std::endl;
+		std::cerr << "Failed to set server socket to non-blocking" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	fcntl(serverSocket, F_SETFL, flags | O_NONBLOCK);
 	
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
@@ -85,7 +83,7 @@ void	Server::handleConnections()
 	}
 	
 	if (errno != EWOULDBLOCK && errno != EAGAIN)
-		std::cerr << "Failed to accept client connection" << std::endl;
+		std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
 }
 
 /* Function to handle incoming messages from clients. It reads the message, prints it
@@ -110,7 +108,7 @@ void	Server::handleClient(int clientFd)
 	else
 	{
 		if (errno != EWOULDBLOCK && errno != EAGAIN)
-			std::cerr << "Failed to receive message from " << clientFd << std::endl;
+			std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
 		removeClient(clientFd);
 	}
 }	
@@ -205,7 +203,7 @@ void	Server::run()
 		int ret = poll(pollfds.data(), pollfds.size(), -1);
 		if (ret == -1)
 		{
-			std::cerr << "Poll failed" << std::endl;
+			std::cerr << "Poll failed: " << strerror(errno) << std::endl;
 			break;
 		}
 		
