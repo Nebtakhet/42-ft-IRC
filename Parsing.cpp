@@ -1,8 +1,5 @@
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Commands.hpp"
-#include <iostream>
-#include <sstream>
+#include "Parsing.hpp"
+
 
 // this fuction should work if the raw_msg is correct, no bad inputs have been taken into account
 

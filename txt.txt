@@ -1,0 +1,5 @@
+parsing.hpp
+
+chop up the message, to give the cmd_sytax filled up
+
+input(string)(IRC message) -> output of filled cmd-syntax struct
