@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+         #
+#    By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/02/06 12:52:59 by cesasanc          #+#    #+#              #
-#    Updated: 2025/02/25 14:34:15 by lstorey          ###   ########.fr        #
+#    Updated: 2025/02/06 13:11:01 by cesasanc         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,7 +14,8 @@ NAME = ircserv
 
 SRCS =	main.cpp \
 		Server.cpp \
-		Parsing.cpp
+		Client.cpp \
+		Commands.cpp \
 
 OBJS = $(SRCS:.cpp=.o)
 
