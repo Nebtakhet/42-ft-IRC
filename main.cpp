@@ -3,17 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+        */
+/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:09:51 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/25 14:57:15 by lstorey          ###   ########.fr       */
+/*   Updated: 2025/02/28 14:31:06 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include "Client.hpp"
-#include "Commands.hpp"
+#include <csignal>
 
+
+/* Function to check if the port number is valid. */
 bool validPort(const char *str, int &port)
 {
 	char *end;
@@ -24,6 +25,17 @@ bool validPort(const char *str, int &port)
 		return (false);
 	port = static_cast<int>(val);
 	return (true);
+}
+
+/* Signal handler to stop the server when signal SIGINT is received. */
+void	signalHandler(int signal)
+{
+	if (serverInstance)
+	{
+		std::cout << "\nSignal " << signal << " received. Stopping server..." << std::endl;
+		serverInstance->cleanExit();
+	}
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char **argv)
@@ -42,10 +54,13 @@ int main(int argc, char **argv)
 	}
 	
 	std::string password = argv[2];
+	
 
 	try
 	{
 		Server server(port, password);
+		serverInstance = &server;
+		signal(SIGINT, signalHandler);
 		server.run();
 	}
 	catch (const std::exception &e)
@@ -53,14 +68,6 @@ int main(int argc, char **argv)
 		std::cerr << "Server error: " << e.what() << std::endl;
 		return (EXIT_FAILURE);
 	}
-
-	/*  ------ MESSAGE PARSING ------
-	
-	std::string irc_message = ":Leo PRIVMSG #channel :Hello, world!\r\n";
-    cmd_syntax parsed = parse_irc_message(irc_message);
-	
-
-	*/
 
 	return (EXIT_SUCCESS);
 }
