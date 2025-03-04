@@ -12,8 +12,6 @@ struct cmd_syntax
 	std::string	message;
 };
 
-//Commands
-
 void	invite(Server *server, int const clientFd, cmd_syntax actual_cmd);
 void	join(Server *server, int const clientFd, cmd_syntax actual_cmd);
 void	kick(Server *server, int const clientFd, cmd_syntax actual_cmd);

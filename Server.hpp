@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/13 11:11:34 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/22 13:31:14 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,15 @@
 
 # include <iostream>
 # include <string>
+# include <cstring>
 # include <sys/socket.h>
 # include <fcntl.h>
 # include <netinet/in.h>
 # include <unistd.h>
 # include <poll.h>
 # include <vector>
+# include <unordered_map>
+# include <queue>
 
 class Server
 {
@@ -29,6 +32,7 @@ class Server
 		~Server();
 		
 		void	run();
+		void	messageBuffer(int clientFd, const std::string &message);
 
 	private:
 		int							port;
@@ -36,14 +40,15 @@ class Server
 		int							serverSocket;
 		struct sockaddr_in			serverAddress;
 		std::vector<struct pollfd>	pollfds;
+		std::unordered_map<int, std::queue<std::string>>	clientBuffer;
 		
 
 		void	setupSocket();
 		void	handleConnections();
 		void	handleClient(int clientFd);
 		void	removeClient(int clientFd);
+		void	sendMessage();
 		void	closeServer();
-
 };
 
 #endif

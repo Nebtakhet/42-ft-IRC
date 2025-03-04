@@ -3,3 +3,10 @@ parsing.hpp
 chop up the message, to give the cmd_sytax filled up
 
 input(string)(IRC message) -> output of filled cmd-syntax struct
+
+--------------
+
+Parsing needs a map, when the prefix 
+
+
+client >>> parser >>> info to server cmd_syntax
