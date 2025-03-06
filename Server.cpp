@@ -6,15 +6,17 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/25 19:02:04 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/28 14:29:08 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
+Server *serverInstance = nullptr;
+
 /* Constructor calling setupSocket */
 Server::Server(int port, const std::string &password) 
-	: port(port), password(password), serverSocket(-1)
+	: port(port), password(password), serverSocket(-1), running(true)
 {
 	setupSocket();
 }
@@ -40,6 +42,13 @@ void	Server::setupSocket()
 	if (fcntl(serverSocket, F_SETFL, O_NONBLOCK) == -1)
 	{
 		std::cerr << "Failed to set server socket to non-blocking" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	int opt = 1;
+	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+	{
+		std::cerr << "setsockopt failed: " << strerror(errno) << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	
@@ -139,6 +148,7 @@ void	Server::closeServer()
 	close(serverSocket);
 	pollfds.clear();
 	clientBuffer.clear();
+	running = false;
 }
 
 /* Function to send messages to clients. It iterates through the pollfds vector and
@@ -198,9 +208,9 @@ clients. */
 void	Server::run()
 {
     std::cout << "Server running on port " << port << " with password " << password << std::endl;
-    while (true)
-    {
-        int ret = poll(pollfds.data(), pollfds.size(), -1);
+       while (running)
+       {
+        int ret = poll(pollfds.data(), pollfds.size(), 1000);
         if (ret == -1)
         {
             std::cerr << "Poll failed: " << strerror(errno) << std::endl;
@@ -219,4 +229,11 @@ void	Server::run()
         }
         sendMessage();	
     }
+}
+
+/* Function to handle a clean exit. It closes the server and exits with EXIT_SUCCESS. */
+void	Server::cleanExit()
+{
+	closeServer();
+	exit(EXIT_SUCCESS);
 }

@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/22 13:31:14 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/02/28 14:30:53 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,14 +33,16 @@ class Server
 		
 		void	run();
 		void	messageBuffer(int clientFd, const std::string &message);
+		void	cleanExit();
 
 	private:
-		int							port;
-		std::string					password;
-		int							serverSocket;
-		struct sockaddr_in			serverAddress;
-		std::vector<struct pollfd>	pollfds;
+		int													port;
+		std::string											password;
+		int													serverSocket;
+		struct sockaddr_in									serverAddress;
+		std::vector<struct pollfd>							pollfds;
 		std::unordered_map<int, std::queue<std::string>>	clientBuffer;
+		bool												running;
 		
 
 		void	setupSocket();
@@ -50,5 +52,7 @@ class Server
 		void	sendMessage();
 		void	closeServer();
 };
+
+extern	Server	*serverInstance;
 
 #endif

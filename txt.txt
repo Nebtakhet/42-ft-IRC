@@ -10,3 +10,7 @@ Parsing needs a map, when the prefix
 
 
 client >>> parser >>> info to server cmd_syntax
+
+authenticating password between channel, server and client
+
+after / theres a keyword 'join' then 
