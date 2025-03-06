@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/28 14:29:08 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/03/06 11:01:03 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,8 +91,9 @@ void	Server::handleConnections()
 		std::cout << "New client connected: " << clientFd << std::endl;
 	}
 	
-	if (errno != EWOULDBLOCK && errno != EAGAIN)
-		std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
+	if (errno == EWOULDBLOCK && errno == EAGAIN)
+		return;
+	std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
 }
 
 /* Function to handle incoming messages from clients. It reads the message, prints it
@@ -114,10 +115,11 @@ void	Server::handleClient(int clientFd)
 		std::cout << "Client " << clientFd << " disconnected" << std::endl;
 		removeClient(clientFd);
 	}
-	else
+	else if (bytesRead == -1)
 	{
-		if (errno != EWOULDBLOCK && errno != EAGAIN)
-			std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
+		if (errno == EWOULDBLOCK && errno == EAGAIN)
+			return;
+		std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
 		removeClient(clientFd);
 	}
 }	
@@ -181,8 +183,6 @@ void	Server::sendMessage()
                     removeClient(clientFd);
                 }
             }
-            if (clientBuffer[clientFd].empty())
-                pollfds[i].events &= ~POLLOUT;
         }
     }
 }
