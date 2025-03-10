@@ -51,6 +51,7 @@ class Server
 		void	removeClient(int clientFd);
 		void	sendMessage();
 		void	closeServer();
+		void 	handleIncomingMessage(const std::string&);
 };
 
 extern	Server	*serverInstance;

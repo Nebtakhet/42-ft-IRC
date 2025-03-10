@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "Server.hpp"
+#include "Parsing.hpp"
 
 Server *serverInstance = nullptr;
 
@@ -109,6 +110,8 @@ void	Server::handleClient(int clientFd)
 		buffer[bytesRead] = '\0';
 		std::cout << "Received message from " << clientFd << ": " << buffer << std::endl;
 		messageBuffer(clientFd, std::string(buffer, bytesRead));
+		// inputted parsing function  here //
+		handleIncomingMessage(std::string(buffer, bytesRead));
 	}
 	else if (bytesRead == 0)
 	{
@@ -236,4 +239,18 @@ void	Server::cleanExit()
 {
 	closeServer();
 	exit(EXIT_SUCCESS);
+}
+
+ /* Function to catch any problems(general) and parse into cmd_syntax */
+void Server::handleIncomingMessage(const std::string &message)
+{
+    try
+    {
+        cmd_syntax parsed = parseIrcMessage(message);
+        // Filling up the cmd_syntax struct
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Message parsing error: " << e.what() << std::endl;
+    }
 }

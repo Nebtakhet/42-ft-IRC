@@ -69,13 +69,5 @@ int main(int argc, char **argv)
 		return (EXIT_FAILURE);
 	}
 
-	/*  ------ MESSAGE PARSING ------
-	
-	std::string irc_message = ":Leo PRIVMSG #channel :Hello, world!\r\n";
-    cmd_syntax parsed = parse_irc_message(irc_message);
-	
-
-	*/
-
 	return (EXIT_SUCCESS);
 }

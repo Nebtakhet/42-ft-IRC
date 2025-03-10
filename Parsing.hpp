@@ -5,4 +5,4 @@
 #include <iostream>
 #include <sstream>
 
-cmd_syntax parse_irc_message(const std::string&); 
+cmd_syntax parseIrcMessage(const std::string&); 
