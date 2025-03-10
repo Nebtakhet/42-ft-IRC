@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/06 11:01:03 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/03/06 12:54:31 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,7 +91,7 @@ void	Server::handleConnections()
 		std::cout << "New client connected: " << clientFd << std::endl;
 	}
 	
-	if (errno == EWOULDBLOCK && errno == EAGAIN)
+	if (errno == EWOULDBLOCK || errno == EAGAIN)
 		return;
 	std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
 }
@@ -107,8 +107,17 @@ void	Server::handleClient(int clientFd)
 	if (bytesRead > 0)
 	{
 		buffer[bytesRead] = '\0';
-		std::cout << "Received message from " << clientFd << ": " << buffer << std::endl;
-		messageBuffer(clientFd, std::string(buffer, bytesRead));
+		clientBuffer[clientFd] += std::string(buffer, bytesRead);
+		
+		size_t pos;
+		while ((pos = clientBuffer[clientFd].find('\n')) != std::string::npos)
+		{
+			std::string command = clientBuffer[clientFd].substr(0, pos);
+			clientBuffer[clientFd].erase(0, pos + 1);
+			
+			std::cout << "Client " << clientFd << ": " << command << std::endl;
+			messageBuffer(clientFd, command);
+		}
 	}
 	else if (bytesRead == 0)
 	{
@@ -117,7 +126,7 @@ void	Server::handleClient(int clientFd)
 	}
 	else if (bytesRead == -1)
 	{
-		if (errno == EWOULDBLOCK && errno == EAGAIN)
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
 			return;
 		std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
 		removeClient(clientFd);
@@ -164,7 +173,7 @@ void	Server::sendMessage()
             int clientFd = pollfds[i].fd;
             if (clientBuffer.find(clientFd) != clientBuffer.end() && !clientBuffer[clientFd].empty())
             {
-                std::string &message = clientBuffer[clientFd].front();
+                std::string &message = clientBuffer[clientFd];
                 
                 ssize_t bytesSent = send(clientFd, message.c_str(), message.size(), 0);
                 if (bytesSent > 0)
@@ -172,7 +181,7 @@ void	Server::sendMessage()
                     message.erase(0, bytesSent);
                     if (message.empty())
                     {
-                        clientBuffer[clientFd].pop();
+                        clientBuffer[clientFd].clear();
                         if (clientBuffer[clientFd].empty())
                             pollfds[i].events &= ~POLLOUT;
                     }
@@ -190,7 +199,7 @@ void	Server::sendMessage()
 /* Function to add a message to the clientBuffer and set the POLLOUT event. */
 void	Server::messageBuffer(int clientFd, const std::string &message)
 {
-	clientBuffer[clientFd].push(message);
+	clientBuffer[clientFd] += message;
 	
 	for (size_t i = 0; i < pollfds.size(); i++)
 	{
