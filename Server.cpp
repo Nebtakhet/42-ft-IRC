@@ -111,7 +111,7 @@ void	Server::handleClient(int clientFd)
 		std::cout << "Received message from " << clientFd << ": " << buffer << std::endl;
 		messageBuffer(clientFd, std::string(buffer, bytesRead));
 		// inputted parsing function  here //
-		handleIncomingMessage(std::string(buffer, bytesRead));
+		handleIncomingMessage(std::string(buffer, bytesRead), clientFd);
 	}
 	else if (bytesRead == 0)
 	{
@@ -242,15 +242,93 @@ void	Server::cleanExit()
 }
 
  /* Function to catch any problems(general) and parse into cmd_syntax */
-void Server::handleIncomingMessage(const std::string &message)
-{
-    try
-    {
-        cmd_syntax parsed = parseIrcMessage(message);
-        // Filling up the cmd_syntax struct
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Message parsing error: " << e.what() << std::endl;
-    }
-}
+ void Server::handleIncomingMessage(const std::string &message, int clientFd)
+ {
+	 try
+	 {
+		 cmd_syntax parsed = parseIrcMessage(message);
+ 
+		 // Redirect to the appropriate command function
+		 if (parsed.name == "JOIN")
+		 {
+			 join(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "INVITE")
+		 {
+			 invite(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "KICK")
+		 {
+			 kick(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "KILL")
+		 {
+			 kill(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "LIST")
+		 {
+			 list(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "MODE")
+		 {
+			 modeFunction(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "MOTD")
+		 {
+			 motd(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "NAMES")
+		 {
+			 names(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "NICK")
+		 {
+			 nick(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "NOTICE")
+		 {
+			 notice(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "OPER")
+		 {
+			 oper(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "PASS")
+		 {
+			 pass(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "PART")
+		 {
+			 part(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "PING")
+		 {
+			 ping(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "PRIVMSG")
+		 {
+			 privmsg(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "QUIT")
+		 {
+			 quit(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "TOPIC")
+		 {
+			 topic(this, clientFd, parsed);
+		 }
+		 else if (parsed.name == "USER")
+		 {
+			 user(this, clientFd, parsed);
+		 }
+		 else
+		 {
+			 std::cerr << "ERROR: Unknown command.\n";
+		 }
+	 }
+	 catch (const std::exception &e)
+	 {
+		 std::cerr << "Message parsing error: " << e.what() << std::endl;
+	 }
+ }
+ 

@@ -52,10 +52,15 @@ int main(int argc, char **argv)
 		std::cerr << "Please enter a valid port number." << std::endl;
 		return (EXIT_FAILURE);
 	}
-	
-	std::string password = argv[2];
-	
 
+	std::string password = argv[2];
+
+	//if(password.length < 5) // maybe a password function to make sure its sensible, nothing in the protocol tho
+	//{
+	//	std::cerr << "Please enter a proper password you lazy fuck!!!!." << std::endl;
+	//	return (EXIT_FAILURE);
+	//} 
+	
 	try
 	{
 		Server server(port, password);

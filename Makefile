@@ -3,7 +3,7 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+         #
+#    By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/02/06 12:52:59 by cesasanc          #+#    #+#              #
 #    Updated: 2025/02/28 14:35:35 by cesasanc         ###   ########.fr        #
@@ -15,7 +15,7 @@ NAME = ircserv
 SRCS =	main.cpp \
 		Server.cpp \
 		Client.cpp \
-		Commands.cpp \
+		Parsing.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 
@@ -37,4 +37,6 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all, clean, fclean, re
+.PHONY: all, clean, fclean, re	
+		
+		#Commands.cpp \
