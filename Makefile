@@ -15,7 +15,6 @@ NAME = ircserv
 SRCS =	main.cpp \
 		Server.cpp \
 		Client.cpp \
-		Commands.cpp \
 		Parsing.cpp
 
 OBJS = $(SRCS:.cpp=.o)
@@ -38,4 +37,6 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all, clean, fclean, re
+.PHONY: all, clean, fclean, re	
+		
+		#Commands.cpp \
