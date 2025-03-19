@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:09:51 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/02/28 14:31:06 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/03/19 22:00:14 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ void	signalHandler(int signal)
 		std::cout << "\nSignal " << signal << " received. Stopping server..." << std::endl;
 		serverInstance->cleanExit();
 	}
-	exit(EXIT_SUCCESS);
+	exit(signal);
 }
 
 int main(int argc, char **argv)
@@ -65,7 +65,12 @@ int main(int argc, char **argv)
 	{
 		Server server(port, password);
 		serverInstance = &server;
+		
 		signal(SIGINT, signalHandler);
+		signal(SIGTERM, signalHandler);
+		signal(SIGQUIT, signalHandler);
+		signal(SIGHUP, signalHandler);
+		
 		server.run();
 	}
 	catch (const std::exception &e)
