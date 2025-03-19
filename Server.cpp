@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/06 12:54:31 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/03/19 22:02:53 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,36 +101,45 @@ to the console and adds it to the clientBuffer. If the client disconnects, it re
 the client from the pollfds vector and closes the connection. */
 void	Server::handleClient(int clientFd)
 {
-	char	buffer[512];
-	int		bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
-	
-	if (bytesRead > 0)
-	{
-		buffer[bytesRead] = '\0';
-		clientBuffer[clientFd] += std::string(buffer, bytesRead);
-		
-		size_t pos;
-		while ((pos = clientBuffer[clientFd].find('\n')) != std::string::npos)
-		{
-			std::string command = clientBuffer[clientFd].substr(0, pos);
-			clientBuffer[clientFd].erase(0, pos + 1);
-			
-			std::cout << "Client " << clientFd << ": " << command << std::endl;
-			messageBuffer(clientFd, command);
-		}
-	}
-	else if (bytesRead == 0)
-	{
-		std::cout << "Client " << clientFd << " disconnected" << std::endl;
-		removeClient(clientFd);
-	}
-	else if (bytesRead == -1)
-	{
-		if (errno == EWOULDBLOCK || errno == EAGAIN)
-			return;
-		std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
-		removeClient(clientFd);
-	}
+    char	buffer[512];
+    int		bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+    
+    if (bytesRead > 0)
+    {
+        buffer[bytesRead] = '\0';
+        clientBuffer[clientFd] += std::string(buffer, bytesRead);
+        
+        size_t pos;
+        while ((pos = clientBuffer[clientFd].find('\n')) != std::string::npos)
+        {
+            std::string command = clientBuffer[clientFd].substr(0, pos);
+            clientBuffer[clientFd].erase(0, pos + 1);
+            
+            std::cout << "Client " << clientFd << ": " << command << std::endl;
+            messageBuffer(clientFd, command);
+        }
+
+        if (clientBuffer[clientFd].find('\0') != std::string::npos)
+        {
+            std::string command = clientBuffer[clientFd];
+            clientBuffer[clientFd].clear();
+            
+            std::cout << "Client " << clientFd << ": " << command << std::endl;
+            messageBuffer(clientFd, command);
+        }
+    }
+    else if (bytesRead == 0)
+    {
+        std::cout << "Client " << clientFd << " disconnected" << std::endl;
+        removeClient(clientFd);
+    }
+    else if (bytesRead == -1)
+    {
+        if (errno == EWOULDBLOCK || errno == EAGAIN)
+            return;
+        std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
+        removeClient(clientFd);
+    }
 }	
 
 /* Function to remove a client from the pollfds vector and close the connection. */
@@ -166,7 +175,7 @@ void	Server::closeServer()
 sends messages to clients that have messages in the clientBuffer. */
 void	Server::sendMessage()
 {
-    for (size_t i = pollfds.size(); i-- > 0; )
+    for (size_t i = pollfds.size(); i-- > 0;)
     {
         if (pollfds[i].revents & POLLOUT)
         {
