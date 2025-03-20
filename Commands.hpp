@@ -10,6 +10,7 @@ struct cmd_syntax
 	std::string	prefix;
 	std::string	name;
 	std::string	message;
+	bool valid;
 };
 
 void	invite(Server *server, int const clientFd, cmd_syntax actual_cmd);
