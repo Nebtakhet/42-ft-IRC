@@ -24,36 +24,44 @@
 # include <vector>
 # include <unordered_map>
 # include <queue>
+# include "Client.hpp"
 
 class Server
 {
-	public:
-		Server(int port, const std::string &password);
-		~Server();
-		
-		void	run();
-		void	messageBuffer(int clientFd, const std::string &message);
-		void	cleanExit();
+public:
+    Server(int port, const std::string &password);
+    ~Server();
+    void setupSocket();
+    void handleConnections();
+    void handleClient(int clientFd);
+    void removeClient(int clientFd);
+    void closeServer();
+    void sendMessage();
+    void messageBuffer(int clientFd, const std::string &message);
+    void run();
+    void cleanExit();
+    void handleIncomingMessage(const std::string &message, int clientFd);
+    void handleNickCommand(int clientFd, const std::string &nickname);
+    void handleCapLs(int clientFd);
+    void handleCapReq(int clientFd, const std::vector<std::string> &capabilities);
+    void handleCapEnd(int clientFd);
+    void sendToClient(int clientFd, const std::string &message);
+    void handleJoinCommand(int clientFd, const std::string &channel); // Add this line
 
-	private:
-		int										port;
-		std::string								password;
-		int										serverSocket;
-		struct sockaddr_in						serverAddress;
-		std::vector<struct pollfd>				pollfds;
-		std::unordered_map<int, std::string>	clientBuffer;
-		bool									running;
-		
+private:
+    int port;
+    std::string password;
+    int serverSocket;
+    bool running;
+    struct sockaddr_in serverAddress;
+    std::vector<struct pollfd> pollfds;
+    std::unordered_map<int, std::string> clientBuffer;
+    std::vector<Client> clients;
+    std::unordered_map<std::string, std::vector<int>> channels; // Add this line
 
-		void	setupSocket();
-		void	handleConnections();
-		void	handleClient(int clientFd);
-		void	removeClient(int clientFd);
-		void	sendMessage();
-		void	closeServer();
-		void 	handleIncomingMessage(const std::string&, int clientFd);
+    const std::string DEFAULT_CHANNEL = "#default"; // Add this line
 };
 
-extern	Server	*serverInstance;
+extern Server *serverInstance;
 
 #endif

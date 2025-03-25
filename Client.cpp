@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include <algorithm> // Ensure this line is present
 
 Client::Client(int clientFd) : _clientFd(clientFd) {}
 
@@ -60,15 +61,29 @@ std::string& Client::getMode() {
     return _mode;
 }
 
-void Client::addMode(std::string mode) {
+void Client::addMode(const std::string &mode) {
     if (_mode.find(mode) == std::string::npos) {
         _mode += mode;
     }
 }
 
-void Client::removeMode(std::string mode) {
+void Client::removeMode(const std::string &mode) {
     size_t pos = _mode.find(mode);
     if (pos != std::string::npos) {
         _mode.erase(pos, mode.length());
     }
+}
+
+void Client::addCapability(const std::string &capability) {
+    if (std::find(_capabilities.begin(), _capabilities.end(), capability) == _capabilities.end()) {
+        _capabilities.push_back(capability);
+    }
+}
+
+bool Client::hasCapability(const std::string &capability) const {
+    return std::find(_capabilities.begin(), _capabilities.end(), capability) != _capabilities.end();
+}
+
+void Client::clearCapabilities() {
+    _capabilities.clear();
 }

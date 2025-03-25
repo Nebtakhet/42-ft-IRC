@@ -13,30 +13,31 @@
 NAME = ircserv
 
 SRCS =	main.cpp \
-		Server.cpp \
-		Client.cpp \
-		Parsing.cpp
+        Server.cpp \
+        Client.cpp \
+        Parsing.cpp \
+        Commands.cpp
 
-OBJS = $(SRCS:.cpp=.o)
+OBJDIR = OBJECTS
+OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 
 CFLAGS	=	-Wall -Wextra -Werror -std=c++11
 
-%.o: %.cpp
-	@c++ ${CFLAGS} -c $< -o $@
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $(OBJDIR)
+	@c++ $(CFLAGS) -c $< -o $@
 
-all: ${NAME}
+all: $(NAME)
 
-${NAME}: ${OBJS}
-	@c++ ${CFLAGS} ${OBJS} -o ${NAME}
+$(NAME): $(OBJS)
+	@c++ $(CFLAGS) $(OBJS) -o $(NAME)
 
 clean:
-	@rm -f ${OBJS}
+	@rm -rf $(OBJDIR)
 
 fclean: clean
-	@rm -f ${NAME}
+	@rm -f $(NAME)
 
 re: fclean all
 
-.PHONY: all, clean, fclean, re	
-		
-		#Commands.cpp \
+.PHONY: all clean fclean re
