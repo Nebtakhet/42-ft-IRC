@@ -37,17 +37,12 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
 }
 
 void join(Server *server, int clientFd, const cmd_syntax &parsed) {
-    if (parsed.params.empty()) {
-        std::cerr << "No channel provided" << std::endl;
-        return;
-    }
-
-    std::string channel = parsed.params[0];
+    std::string channel = parsed.params.empty() ? server->DEFAULT_CHANNEL : parsed.params[0];
     server->handleJoinCommand(clientFd, channel);
 }
 
 void user(Server *server, int clientFd, const cmd_syntax &parsed) {
-    if (parsed.params.size() < 4) {
+    if (parsed.params.size() < 3 || parsed.message.empty()) {
         std::cerr << "Not enough parameters for USER command" << std::endl;
         return;
     }
@@ -68,4 +63,14 @@ void pass(Server *server, int clientFd, const cmd_syntax &parsed) {
 
     std::string password = parsed.params[0];
     server->handlePassCommand(clientFd, password);
+}
+
+void ping(Server *server, int clientFd, const cmd_syntax &parsed) {
+    if (parsed.params.empty()) {
+        std::cerr << "No PING parameters provided" << std::endl;
+        return;
+    }
+
+    std::string response = "PONG :" + parsed.params[0] + "\r\n";
+    server->sendToClient(clientFd, response);
 }

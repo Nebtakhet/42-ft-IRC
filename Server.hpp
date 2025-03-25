@@ -34,6 +34,8 @@
 class Server
 {
 public:
+    const std::string DEFAULT_CHANNEL = "#default";
+
     Server(int port, const std::string &password);
     ~Server();
     void setupSocket();
@@ -65,7 +67,7 @@ private:
     std::vector<Client> clients;
     std::unordered_map<std::string, std::vector<int>> channels;
 
-    const std::string DEFAULT_CHANNEL = "#default";
+
 };
 
 extern Server *serverInstance;
