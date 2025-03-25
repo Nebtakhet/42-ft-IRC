@@ -13,7 +13,6 @@
 #include "Server.hpp"
 #include "Parsing.hpp"
 #include "Commands.hpp"
-#include <algorithm> // Ensure this line is present
 
 Server *serverInstance = nullptr;
 
@@ -93,7 +92,7 @@ void Server::handleConnections()
             continue;
         }
         pollfds.push_back({clientFd, POLLIN, 0});
-        clients.emplace_back(clientFd); // Ensure this line is present
+        clients.emplace_back(clientFd); 
         std::cout << "New client connected: " << clientFd << std::endl;
 
         // Automatically join the default channel
@@ -118,8 +117,16 @@ void Server::handleClient(int clientFd)
         buffer[bytesRead] = '\0';
         clientBuffer[clientFd] += std::string(buffer, bytesRead);
         
-        // Print the incoming message for debugging purposes
-        std::cout << ">>>>>>>>>>>>>>>>Received from client " << clientFd << ": " << buffer << std::endl;
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+        std::tm *now_tm = std::localtime(&now_time);
+
+        std::ostringstream time_stream;
+        time_stream << std::put_time(now_tm, "%Y-%m-%d %H:%M:%S");
+
+        // DEBUGGING
+        std::cout << time_stream.str() << " >>>>>>>>>>>>>>>>>>>> Received from client " << clientFd << buffer << std::endl;
+
 
         size_t pos;
         while ((pos = clientBuffer[clientFd].find('\n')) != std::string::npos)
@@ -285,16 +292,27 @@ void	Server::cleanExit()
 
 void Server::handleIncomingMessage(const std::string &message, int clientFd) {
     try {
-        cmd_syntax parsed = parseIrcMessage(message);
+        std::istringstream stream(message);
+        std::string line;
+        while (std::getline(stream, line)) {
+            if (line.back() == '\r') {
+                line.pop_back();
+            }
+            cmd_syntax parsed = parseIrcMessage(line);
 
-        if (parsed.name == "NICK") {
-            handleNickCommand(clientFd, parsed.params[0]);
-        } else if (parsed.name == "CAP") {
-            cap(this, clientFd, parsed);
-        } else if (parsed.name == "JOIN") {
-            join(this, clientFd, parsed);
-        } else {
-            std::cerr << "ERROR: Unknown command.\n";
+            if (parsed.name == "NICK") {
+                handleNickCommand(clientFd, parsed.params[0]);
+            } else if (parsed.name == "CAP") {
+                cap(this, clientFd, parsed);
+            } else if (parsed.name == "JOIN") {
+                join(this, clientFd, parsed);
+            } else if (parsed.name == "USER") {
+                user(this, clientFd, parsed);
+            } else if (parsed.name == "PASS") {
+                pass(this, clientFd, parsed);
+            } else {
+                std::cerr << "ERROR: Unknown command.\n";
+            }
         }
     } catch (const std::exception &e) {
         std::cerr << "Message parsing error: " << e.what() << std::endl;
@@ -317,13 +335,22 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
 
 void Server::sendToClient(int clientFd, const std::string &message) {
     send(clientFd, message.c_str(), message.size(), 0);
-    std::cout << "********************Sent to client " << clientFd << ": " << message << std::endl;
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::tm *now_tm = std::localtime(&now_time);
+
+    std::ostringstream time_stream;
+    time_stream << std::put_time(now_tm, "%Y-%m-%d %H:%M:%S");
+
+    // DEBUGGING
+    std::cout << time_stream.str() << " ******************** Sent to client " << clientFd << message << std::endl;
 }
 
 void Server::handleCapLs(int clientFd) {
     std::string capList = "multi-prefix sasl";
     std::string response = "CAP * LS :" + capList + "\r\n";
-    sendToClient(clientFd, response); // Use the helper function
+    sendToClient(clientFd, response); 
 }
 
 void Server::handleCapReq(int clientFd, const std::vector<std::string> &capabilities) {
@@ -336,13 +363,13 @@ void Server::handleCapReq(int clientFd, const std::vector<std::string> &capabili
             it->addCapability(cap);
         }
         std::string response = "CAP * ACK :" + capabilities[0] + "\r\n";
-        sendToClient(clientFd, response); // Use the helper function
+        sendToClient(clientFd, response); 
     }
 }
 
 void Server::handleCapEnd(int clientFd) {
     std::string response = "CAP * END\r\n";
-    sendToClient(clientFd, response); // Use the helper function
+    sendToClient(clientFd, response); 
 }
 
 void Server::handleJoinCommand(int clientFd, const std::string &channel)
@@ -363,6 +390,52 @@ void Server::handleJoinCommand(int clientFd, const std::string &channel)
         std::string response = ":" + it->getNickname() + " JOIN " + channel + "\r\n";
         sendToClient(clientFd, response);
         std::cout << "Client " << clientFd << " joined channel " << channel << std::endl;
+    }
+    else
+    {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+    }
+}
+
+void Server::handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname)
+{
+    (void)hostname;
+	(void)servername;
+	
+	auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end())
+    {
+        it->setUsername(username);
+        it->setRealname(realname);
+        std::cout << "Client " << clientFd << " set username to " << username << " and realname to " << realname << std::endl;
+    }
+    else
+    {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+    }
+}
+
+void Server::handlePassCommand(int clientFd, const std::string &password)
+{
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end())
+    {
+        if (password == this->password)
+        {
+            it->setAuthenticated(true);
+            std::cout << "Client " << clientFd << " authenticated successfully" << std::endl;
+        }
+        else
+        {
+            std::cerr << "Client " << clientFd << " provided incorrect password" << std::endl;
+            removeClient(clientFd);
+        }
     }
     else
     {

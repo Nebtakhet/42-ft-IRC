@@ -1,7 +1,6 @@
 #include "Client.hpp"
-#include <algorithm> // Ensure this line is present
 
-Client::Client(int clientFd) : _clientFd(clientFd) {}
+Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false) {} // Initialize _authenticated
 
 Client::~Client() {}
 
@@ -86,4 +85,12 @@ bool Client::hasCapability(const std::string &capability) const {
 
 void Client::clearCapabilities() {
     _capabilities.clear();
+}
+
+void Client::setAuthenticated(bool authenticated) {
+    _authenticated = authenticated;
+}
+
+bool Client::isAuthenticated() const {
+    return _authenticated;
 }

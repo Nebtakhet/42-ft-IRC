@@ -11,8 +11,6 @@
 /* ************************************************************************** */
 
 #include "Server.hpp"
-#include <csignal>
-
 
 /* Function to check if the port number is valid. */
 bool validPort(const char *str, int &port)

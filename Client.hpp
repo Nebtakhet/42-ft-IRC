@@ -16,6 +16,7 @@
 # include <string>
 # include <cerrno>
 # include <ctime>
+# include <algorithm>
 
 class Client
 {
@@ -29,6 +30,7 @@ class Client
         std::string		_realname;
         std::string		_mode;
         std::vector<std::string> _capabilities;
+        bool            _authenticated;
     
     public:
         Client(int clientFd);
@@ -56,6 +58,9 @@ class Client
         void addCapability(const std::string &capability);
         bool hasCapability(const std::string &capability) const;
         void clearCapabilities();
+
+        void setAuthenticated(bool authenticated); 
+        bool isAuthenticated() const;
 };
 
 #endif

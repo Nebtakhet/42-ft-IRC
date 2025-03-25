@@ -23,7 +23,12 @@
 # include <poll.h>
 # include <vector>
 # include <unordered_map>
+# include <chrono>
+# include <iomanip>
+# include <sstream>
 # include <queue>
+# include <csignal>
+# include <algorithm>
 # include "Client.hpp"
 
 class Server
@@ -46,8 +51,9 @@ public:
     void handleCapReq(int clientFd, const std::vector<std::string> &capabilities);
     void handleCapEnd(int clientFd);
     void sendToClient(int clientFd, const std::string &message);
-    void handleJoinCommand(int clientFd, const std::string &channel); // Add this line
-
+    void handleJoinCommand(int clientFd, const std::string &channel);
+    void handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
+    void handlePassCommand(int clientFd, const std::string &password); 
 private:
     int port;
     std::string password;
@@ -57,9 +63,9 @@ private:
     std::vector<struct pollfd> pollfds;
     std::unordered_map<int, std::string> clientBuffer;
     std::vector<Client> clients;
-    std::unordered_map<std::string, std::vector<int>> channels; // Add this line
+    std::unordered_map<std::string, std::vector<int>> channels;
 
-    const std::string DEFAULT_CHANNEL = "#default"; // Add this line
+    const std::string DEFAULT_CHANNEL = "#default";
 };
 
 extern Server *serverInstance;
