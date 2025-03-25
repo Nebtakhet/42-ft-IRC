@@ -12,13 +12,16 @@
 
 #include "Server.hpp"
 #include "Parsing.hpp"
+#include "Commands.hpp"
+#include <algorithm> // Ensure this line is present
 
 Server *serverInstance = nullptr;
 
 /* Constructor calling setupSocket */
 Server::Server(int port, const std::string &password) 
-	: port(port), password(password), serverSocket(-1), running(true)
+	: port(port), password(password), serverSocket(-1), running(false)
 {
+	std::cout << "Initializing server on port " << port << " with password " << password << std::endl;
 	setupSocket();
 }
 
@@ -49,7 +52,7 @@ void	Server::setupSocket()
 	int opt = 1;
 	if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
-		std::cerr << "setsockopt failed: " << strerror(errno) << std::endl;
+		std::cerr << "Failed to set socket options" << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	
@@ -70,46 +73,54 @@ void	Server::setupSocket()
 	}
 
 	pollfds.push_back({serverSocket, POLLIN, 0});
+	std::cout << "Socket setup complete. Listening on port " << port << std::endl;
 }
 
 /* Function to handle incoming connections. It accepts the connection, sets the client
 socket to non-blocking and adds it to the pollfds vector. */
-void	Server::handleConnections()
+void Server::handleConnections()
 {
-	struct sockaddr_in	clientAddress;
-	socklen_t			clientLen = sizeof(clientAddress);
-	int 				clientFd;
-	
-	while ((clientFd = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen)) >= 0)
-	{
-		if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1)
-		{
-			std::cerr << "Failed to set client socket to non-blocking" << std::endl;
-			close(clientFd);
-			continue;
-		}
-		pollfds.push_back({clientFd, POLLIN, 0});
-		std::cout << "New client connected: " << clientFd << std::endl;
-	}
-	
-	if (errno == EWOULDBLOCK || errno == EAGAIN)
-		return;
-	std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
+    struct sockaddr_in clientAddress;
+    socklen_t clientLen = sizeof(clientAddress);
+    int clientFd;
+
+    while ((clientFd = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen)) >= 0)
+    {
+        if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1)
+        {
+            std::cerr << "Failed to set client socket to non-blocking" << std::endl;
+            close(clientFd);
+            continue;
+        }
+        pollfds.push_back({clientFd, POLLIN, 0});
+        clients.emplace_back(clientFd); // Ensure this line is present
+        std::cout << "New client connected: " << clientFd << std::endl;
+
+        // Automatically join the default channel
+        handleJoinCommand(clientFd, DEFAULT_CHANNEL);
+    }
+
+    if (errno == EWOULDBLOCK || errno == EAGAIN)
+        return;
+    std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
 }
 
 /* Function to handle incoming messages from clients. It reads the message, prints it
 to the console and adds it to the clientBuffer. If the client disconnects, it removes
 the client from the pollfds vector and closes the connection. */
-void	Server::handleClient(int clientFd)
+void Server::handleClient(int clientFd)
 {
-    char	buffer[512];
-    int		bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
+    char buffer[512];
+    int bytesRead = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
     
     if (bytesRead > 0)
     {
         buffer[bytesRead] = '\0';
         clientBuffer[clientFd] += std::string(buffer, bytesRead);
         
+        // Print the incoming message for debugging purposes
+        std::cout << ">>>>>>>>>>>>>>>>Received from client " << clientFd << ": " << buffer << std::endl;
+
         size_t pos;
         while ((pos = clientBuffer[clientFd].find('\n')) != std::string::npos)
         {
@@ -127,12 +138,9 @@ void	Server::handleClient(int clientFd)
             
             std::cout << "Client " << clientFd << ": " << command << std::endl;
             messageBuffer(clientFd, command);
-          
         }
-      	handleIncomingMessage(std::string(buffer, bytesRead), clientFd);
+        handleIncomingMessage(std::string(buffer, bytesRead), clientFd);
     }
-  
-
     else if (bytesRead == 0)
     {
         std::cout << "Client " << clientFd << " disconnected" << std::endl;
@@ -145,10 +153,10 @@ void	Server::handleClient(int clientFd)
         std::cerr << "Failed to receive message from " << clientFd << ": " << strerror(errno) << std::endl;
         removeClient(clientFd);
     }
-}	
+}
 
 /* Function to remove a client from the pollfds vector and close the connection. */
-void	Server::removeClient(int clientFd)
+void Server::removeClient(int clientFd)
 {
     close(clientFd);
     for (size_t i = pollfds.size(); i-- > 0; )
@@ -160,6 +168,16 @@ void	Server::removeClient(int clientFd)
         }
     }
     clientBuffer.erase(clientFd);
+
+    // Remove client from clients container
+    clients.erase(std::remove_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    }), clients.end());
+
+    for (auto &channel : channels)
+    {
+        channel.second.erase(std::remove(channel.second.begin(), channel.second.end(), clientFd), channel.second.end());
+    }
 }
 
 /* Function to close the server. It closes all client connections and the server socket. */
@@ -208,7 +226,7 @@ void	Server::sendMessage()
             }
         }
     }
-} cmd_syntax parsed;
+}
 
 /* Function to add a message to the clientBuffer and set the POLLOUT event. */
 void	Server::messageBuffer(int clientFd, const std::string &message)
@@ -231,26 +249,30 @@ clients. */
 void	Server::run()
 {
     std::cout << "Server running on port " << port << " with password " << password << std::endl;
-       while (running)
-       {
-        int ret = poll(pollfds.data(), pollfds.size(), 1000);
+    running = true;
+    while (running)
+    {
+        int ret = poll(pollfds.data(), pollfds.size(), -1);
         if (ret == -1)
         {
-            std::cerr << "Poll failed: " << strerror(errno) << std::endl;
+            std::cerr << "Poll error: " << strerror(errno) << std::endl;
             break;
         }
-        
-        for (size_t i = pollfds.size(); i-- > 0; )
+
+        for (size_t i = 0; i < pollfds.size(); ++i)
         {
             if (pollfds[i].revents & POLLIN)
             {
                 if (pollfds[i].fd == serverSocket)
+                {
                     handleConnections();
+                }
                 else
+                {
                     handleClient(pollfds[i].fd);
+                }
             }
         }
-        sendMessage();	
     }
 }
 
@@ -261,94 +283,89 @@ void	Server::cleanExit()
 	exit(EXIT_SUCCESS);
 }
 
- /* Function to catch any problems(general) and parse into cmd_syntax */
- void Server::handleIncomingMessage(const std::string &message, int clientFd)
- {
-	 try
-	 {
-		 cmd_syntax parsed = parseIrcMessage(message);
- 
-		 // Redirect to the appropriate command function
-		 if (parsed.name == "JOIN")
-		 {
-			 join(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "INVITE")
-		 {
-			 invite(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "KICK")
-		 {
-			 kick(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "KILL")
-		 {
-			 kill(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "LIST")
-		 {
-			 list(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "MODE")
-		 {
-			 modeFunction(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "MOTD")
-		 {
-			 motd(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "NAMES")
-		 {
-			 names(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "NICK")
-		 {
-			 nick(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "NOTICE")
-		 {
-			 notice(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "OPER")
-		 {
-			 oper(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "PASS")
-		 {
-			 pass(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "PART")
-		 {
-			 part(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "PING")
-		 {
-			 ping(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "PRIVMSG")
-		 {
-			 privmsg(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "QUIT")
-		 {
-			 quit(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "TOPIC")
-		 {
-			 topic(this, clientFd, parsed);
-		 }
-		 else if (parsed.name == "USER")
-		 {
-			 user(this, clientFd, parsed);
-		 }
-		 else
-		 {
-			 std::cerr << "ERROR: Unknown command.\n";
-		 }
-	 }
-	 catch (const std::exception &e)
-	 {
-		 std::cerr << "Message parsing error: " << e.what() << std::endl;
-	 }
- }
- 
+void Server::handleIncomingMessage(const std::string &message, int clientFd) {
+    try {
+        cmd_syntax parsed = parseIrcMessage(message);
+
+        if (parsed.name == "NICK") {
+            handleNickCommand(clientFd, parsed.params[0]);
+        } else if (parsed.name == "CAP") {
+            cap(this, clientFd, parsed);
+        } else if (parsed.name == "JOIN") {
+            join(this, clientFd, parsed);
+        } else {
+            std::cerr << "ERROR: Unknown command.\n";
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Message parsing error: " << e.what() << std::endl;
+    }
+}
+
+void Server::handleNickCommand(int clientFd, const std::string &nickname) {
+    // Find the client by clientFd
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end()) {
+        it->setNickname(nickname);
+        std::cout << "Client " << clientFd << " set nickname to " << nickname << std::endl;
+    } else {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+    }
+}
+
+void Server::sendToClient(int clientFd, const std::string &message) {
+    send(clientFd, message.c_str(), message.size(), 0);
+    std::cout << "********************Sent to client " << clientFd << ": " << message << std::endl;
+}
+
+void Server::handleCapLs(int clientFd) {
+    std::string capList = "multi-prefix sasl";
+    std::string response = "CAP * LS :" + capList + "\r\n";
+    sendToClient(clientFd, response); // Use the helper function
+}
+
+void Server::handleCapReq(int clientFd, const std::vector<std::string> &capabilities) {
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end()) {
+        for (const auto &cap : capabilities) {
+            it->addCapability(cap);
+        }
+        std::string response = "CAP * ACK :" + capabilities[0] + "\r\n";
+        sendToClient(clientFd, response); // Use the helper function
+    }
+}
+
+void Server::handleCapEnd(int clientFd) {
+    std::string response = "CAP * END\r\n";
+    sendToClient(clientFd, response); // Use the helper function
+}
+
+void Server::handleJoinCommand(int clientFd, const std::string &channel)
+{
+    if (channel.empty())
+    {
+        std::cerr << "No channel provided" << std::endl;
+        return;
+    }
+
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end())
+    {
+        channels[channel].push_back(clientFd);
+        std::string response = ":" + it->getNickname() + " JOIN " + channel + "\r\n";
+        sendToClient(clientFd, response);
+        std::cout << "Client " << clientFd << " joined channel " << channel << std::endl;
+    }
+    else
+    {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+    }
+}

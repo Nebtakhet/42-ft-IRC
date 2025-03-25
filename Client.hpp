@@ -28,6 +28,7 @@ class Client
         std::string		_username;
         std::string		_realname;
         std::string		_mode;
+        std::vector<std::string> _capabilities;
     
     public:
         Client(int clientFd);
@@ -49,8 +50,12 @@ class Client
         std::string		getRealname()const;
 
         std::string&	getMode();
-        void			addMode(std::string const mode);
-        void			removeMode(std::string const mode);
+        void			addMode(const std::string &mode);
+        void			removeMode(const std::string &mode);
+
+        void addCapability(const std::string &capability);
+        bool hasCapability(const std::string &capability) const;
+        void clearCapabilities();
 };
 
 #endif
