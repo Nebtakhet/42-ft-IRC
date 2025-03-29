@@ -11,5 +11,6 @@ void join(Server *server, int clientFd, const cmd_syntax &parsed);
 void user(Server *server, int clientFd, const cmd_syntax &parsed);
 void pass(Server *server, int clientFd, const cmd_syntax &parsed);
 void ping(Server *server, int clientFd, const cmd_syntax &parsed);
+void part(Server *server, int clientFd, const cmd_syntax &parsed);
 
 #endif

@@ -74,3 +74,15 @@ void ping(Server *server, int clientFd, const cmd_syntax &parsed) {
     std::string response = "PONG :" + parsed.params[0] + "\r\n";
     server->sendToClient(clientFd, response);
 }
+
+void part(Server *server, int clientFd, const cmd_syntax &parsed) {
+    if (parsed.params.empty()) {
+        std::cerr << "No channel provided for PART command" << std::endl;
+        std::string response = "461 PART :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    std::string channel = parsed.params[0];
+    server->handlePartCommand(clientFd, channel);
+}

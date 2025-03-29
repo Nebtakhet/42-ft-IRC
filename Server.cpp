@@ -46,6 +46,8 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
                 cap(this, clientFd, parsed);
             } else if (parsed.name == "JOIN") {
                 join(this, clientFd, parsed);
+            } else if (parsed.name == "PART") {
+                part(this, clientFd, parsed); // Add this line
             } else if (parsed.name == "USER") {
                 user(this, clientFd, parsed);
             } else if (parsed.name == "PASS") {
@@ -178,5 +180,38 @@ void Server::handlePassCommand(int clientFd, const std::string &password)
     else
     {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
+    }
+}
+
+void Server::handlePartCommand(int clientFd, const std::string &channel) {
+    auto it = channels.find(channel);
+    if (it == channels.end()) {
+        std::cerr << "Channel " << channel << " does not exist" << std::endl;
+        std::string response = "403 " + channel + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    auto &clientsInChannel = it->second;
+    auto clientIt = std::find(clientsInChannel.begin(), clientsInChannel.end(), clientFd);
+    if (clientIt == clientsInChannel.end()) {
+        std::cerr << "Client " << clientFd << " is not in channel " << channel << std::endl;
+        std::string response = "442 " + channel + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    // Remove the client from the channel
+    clientsInChannel.erase(clientIt);
+    std::cout << "Client " << clientFd << " left channel " << channel << std::endl;
+
+    // Notify the client and the channel
+    std::string response = ":" + clients[clientFd].getNickname() + " PART " + channel + "\r\n";
+    sendToClient(clientFd, response);
+
+    // If the channel is empty, remove it
+    if (clientsInChannel.empty()) {
+        channels.erase(it);
+        std::cout << "Channel " << channel << " is now empty and has been removed" << std::endl;
     }
 }

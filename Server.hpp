@@ -54,6 +54,7 @@ public:
     void handleCapEnd(int clientFd);
     void sendToClient(int clientFd, const std::string &message);
     void handleJoinCommand(int clientFd, const std::string &channel);
+    void handlePartCommand(int clientFd, const std::string &channel); // Add this line
     void handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
     void handlePassCommand(int clientFd, const std::string &password); 
 private:
@@ -66,8 +67,6 @@ private:
     std::unordered_map<int, std::string> clientBuffer;
     std::vector<Client> clients;
     std::unordered_map<std::string, std::vector<int>> channels;
-
-
 };
 
 extern Server *serverInstance;
