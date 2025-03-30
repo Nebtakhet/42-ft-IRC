@@ -47,13 +47,21 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
             } else if (parsed.name == "JOIN") {
                 join(this, clientFd, parsed);
             } else if (parsed.name == "PART") {
-                part(this, clientFd, parsed); // Add this line
+                part(this, clientFd, parsed);
             } else if (parsed.name == "USER") {
                 user(this, clientFd, parsed);
             } else if (parsed.name == "PASS") {
                 pass(this, clientFd, parsed);
             } else if (parsed.name == "PING") {
                 ping(this, clientFd, parsed);
+            } else if (parsed.name == "PRIVMSG") {
+                privmsg(this, clientFd, parsed);
+            } else if (parsed.name == "HELP") {
+                help(this, clientFd, parsed);
+            } else if (parsed.name == "WHO") {
+                who(this, clientFd, parsed);
+            } else if (parsed.name == "QUIT") {
+                quit(this, clientFd, parsed);
             } else {
                 std::cerr << "ERROR: Unknown command.\n";
             }
@@ -214,4 +222,177 @@ void Server::handlePartCommand(int clientFd, const std::string &channel) {
         channels.erase(it);
         std::cout << "Channel " << channel << " is now empty and has been removed" << std::endl;
     }
+}
+
+void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message) {
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it == clients.end()) {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    std::string sender = it->getNickname();
+
+    // Check if the target is a channel
+    if (target[0] == '#') {
+        auto channelIt = channels.find(target);
+        if (channelIt == channels.end()) {
+            std::cerr << "Channel " << target << " does not exist" << std::endl;
+            std::string response = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+            sendToClient(clientFd, response);
+            return;
+        }
+
+        // Send the message to all clients in the channel except the sender
+        for (int memberFd : channelIt->second) {
+            if (memberFd != clientFd) {
+                std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
+                sendToClient(memberFd, response);
+            }
+        }
+    } else {
+        // Target is a user
+        auto targetIt = std::find_if(clients.begin(), clients.end(), [&target](const Client &client) {
+            return client.getNickname() == target;
+        });
+
+        if (targetIt == clients.end()) {
+            std::cerr << "User " << target << " does not exist" << std::endl;
+            std::string response = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+            sendToClient(clientFd, response);
+            return;
+        }
+
+        // Send the message to the target user
+        int targetFd = targetIt->getClientFd();
+        std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
+        sendToClient(targetFd, response);
+    }
+}
+
+void Server::handleHelpCommand(int clientFd) {
+    std::string response =
+        "Available commands:\r\n"
+        "NICK <nickname> - Set your nickname\r\n"
+        "USER <username> <hostname> <servername> :<realname> - Register your username\r\n"
+        "JOIN <#channel> - Join a channel\r\n"
+        "PART <#channel> - Leave a channel\r\n"
+        "PRIVMSG <target> <message> - Send a private message to a user or channel\r\n"
+        "PING <server> - Ping the server\r\n"
+        "PASS <password> - Authenticate with the server\r\n"
+        "WHO <target> - List information about users\r\n"
+        "QUIT <message> - Disconnect from the server\r\n"
+        "HELP - Show this help message\r\n"
+        "\r\n"
+        "Examples:\r\n"
+        "  NICK JohnDoe\r\n"
+        "  USER John localhost server :John Doe\r\n"
+        "  JOIN #general\r\n"
+        "  PART #general\r\n"
+        "  PRIVMSG #general :Hello everyone!\r\n"
+        "  PRIVMSG JohnDoe :Hello, John!\r\n"
+        "  PING irc.example.com\r\n"
+        "  QUIT :Goodbye!\r\n";
+
+    sendToClient(clientFd, response);
+}
+
+void Server::handleWhoCommand(int clientFd, const std::string &target) {
+    std::ostringstream response;
+
+    if (target.empty()) {
+        // WHO without a target: list all users on the server
+        for (const Client &client : clients) {
+            response << client.getNickname() << " "
+                     << client.getUsername() << " "
+                     << client.getRealname() << "\r\n";
+        }
+    } else if (target[0] == '#') {
+        // WHO for a channel
+        auto channelIt = channels.find(target);
+        if (channelIt == channels.end()) {
+            std::cerr << "Channel " << target << " does not exist" << std::endl;
+            std::string errorResponse = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+            sendToClient(clientFd, errorResponse);
+            return;
+        }
+
+        for (int memberFd : channelIt->second) {
+            auto it = std::find_if(clients.begin(), clients.end(), [memberFd](const Client &client) {
+                return client.getClientFd() == memberFd;
+            });
+
+            if (it != clients.end()) {
+                response << it->getNickname() << " "
+                         << it->getUsername() << " "
+                         << it->getRealname() << "\r\n";
+            }
+        }
+    } else {
+        // WHO for a specific user
+        auto it = std::find_if(clients.begin(), clients.end(), [&target](const Client &client) {
+            return client.getNickname() == target;
+        });
+
+        if (it == clients.end()) {
+            std::cerr << "User " << target << " does not exist" << std::endl;
+            std::string errorResponse = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+            sendToClient(clientFd, errorResponse);
+            return;
+        }
+
+        response << it->getNickname() << " "
+                 << it->getUsername() << " "
+                 << it->getRealname() << "\r\n";
+    }
+
+    sendToClient(clientFd, response.str());
+}
+
+void Server::handleQuitCommand(int clientFd, const std::string &quitMessage) {
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it == clients.end()) {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    std::string nickname = it->getNickname();
+
+    // Notify all channels the client is part of
+    for (auto &channel : channels) {
+        auto &clientsInChannel = channel.second;
+        if (std::find(clientsInChannel.begin(), clientsInChannel.end(), clientFd) != clientsInChannel.end()) {
+            std::string response = ":" + nickname + " QUIT :" + quitMessage + "\r\n";
+            for (int memberFd : clientsInChannel) {
+                if (memberFd != clientFd) {
+                    sendToClient(memberFd, response);
+                }
+            }
+        }
+    }
+
+    // Remove the client from all channels
+    for (auto &channel : channels) {
+        auto &clientsInChannel = channel.second;
+        clientsInChannel.erase(std::remove(clientsInChannel.begin(), clientsInChannel.end(), clientFd), clientsInChannel.end());
+    }
+
+    // Remove empty channels
+    for (auto it = channels.begin(); it != channels.end();) {
+        if (it->second.empty()) {
+            it = channels.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    // Remove the client
+    std::cout << "Client " << clientFd << " (" << nickname << ") disconnected with message: " << quitMessage << std::endl;
+    removeClient(clientFd);
 }

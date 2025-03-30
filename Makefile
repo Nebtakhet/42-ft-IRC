@@ -12,6 +12,9 @@
 
 NAME = ircserv
 
+SRCDIR = SRC
+OBJDIR = OBJECTS
+
 SRCS =	main.cpp \
         Server.cpp \
 		ServerConnection.cpp \
@@ -19,12 +22,12 @@ SRCS =	main.cpp \
         Parsing.cpp \
         Commands.cpp
 
-OBJDIR = OBJECTS
-OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
+SRCS := $(addprefix $(SRCDIR)/, $(SRCS))
+OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
-CFLAGS	=	-Wall -Wextra -Werror -std=c++11
+CFLAGS	=	-Wall -Wextra -Werror
 
-$(OBJDIR)/%.o: %.cpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(OBJDIR)
 	@c++ $(CFLAGS) -c $< -o $@
 

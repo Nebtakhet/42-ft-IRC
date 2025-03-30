@@ -24,6 +24,12 @@ cmd_syntax parseIrcMessage(const std::string& raw_msg)
         }
     }
 
+    // Handle cases where the message is not prefixed with a colon
+    if (parsed.name == "PRIVMSG" && parsed.params.size() > 1 && parsed.message.empty()) {
+        parsed.message = parsed.params.back();
+        parsed.params.pop_back();
+    }
+
     std::cout << "Prefix: " << parsed.prefix << "\nName: " << parsed.name << "\nParams: ";
     for (const auto& p : parsed.params) {
         std::cout << p << " ";

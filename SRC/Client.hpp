@@ -43,7 +43,7 @@ class Client
         std::string&	getSendBuffer();
         void			setSendBuffer(std::string const &buf);
 
-        std::string&	getNickname();
+        const std::string& getNickname() const; 
         void			setOldNickname(std::string const &nickname);
         std::string&	getOldNickname();
         void			setUsername(std::string const &username);

@@ -28,7 +28,7 @@ void Client::setSendBuffer(const std::string &buf) {
     _send_buffer = buf;
 }
 
-std::string& Client::getNickname() {
+const std::string& Client::getNickname() const { 
     return _nickname;
 }
 

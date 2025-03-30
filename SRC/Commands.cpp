@@ -86,3 +86,46 @@ void part(Server *server, int clientFd, const cmd_syntax &parsed) {
     std::string channel = parsed.params[0];
     server->handlePartCommand(clientFd, channel);
 }
+
+void privmsg(Server *server, int clientFd, const cmd_syntax &parsed) {
+    if (parsed.params.empty() || parsed.message.empty()) {
+        std::cerr << "No target or message provided for PRIVMSG command" << std::endl;
+        std::string response = "461 PRIVMSG :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    std::string target = parsed.params[0];
+    std::string message = parsed.message;
+
+    server->handlePrivmsgCommand(clientFd, target, message);
+}
+
+void help(Server *server, int clientFd, const cmd_syntax &parsed) {
+    (void)parsed; // The HELP command does not require parameters
+
+    std::string response =
+        "Available commands:\r\n"
+        "NICK <nickname> - Set your nickname\r\n"
+        "USER <username> <hostname> <servername> :<realname> - Register your username\r\n"
+        "JOIN <#channel> - Join a channel\r\n"
+        "PART <#channel> - Leave a channel\r\n"
+        "PRIVMSG <target> <message> - Send a private message to a user or channel\r\n"
+        "PING <server> - Ping the server\r\n"
+        "PASS <password> - Authenticate with the server\r\n"
+        "HELP - Show this help message\r\n";
+
+    server->sendToClient(clientFd, response);
+}
+
+void who(Server *server, int clientFd, const cmd_syntax &parsed) {
+    std::string target = parsed.params.empty() ? "" : parsed.params[0];
+
+    server->handleWhoCommand(clientFd, target);
+}
+
+void quit(Server *server, int clientFd, const cmd_syntax &parsed) {
+    std::string quitMessage = parsed.message.empty() ? "Client disconnected" : parsed.message;
+
+    server->handleQuitCommand(clientFd, quitMessage);
+}

@@ -54,9 +54,13 @@ public:
     void handleCapEnd(int clientFd);
     void sendToClient(int clientFd, const std::string &message);
     void handleJoinCommand(int clientFd, const std::string &channel);
-    void handlePartCommand(int clientFd, const std::string &channel); // Add this line
+    void handlePartCommand(int clientFd, const std::string &channel);
+    void handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message);
+    void handleHelpCommand(int clientFd);
+    void handleWhoCommand(int clientFd, const std::string &target);
+    void handleQuitCommand(int clientFd, const std::string &quitMessage);
     void handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
-    void handlePassCommand(int clientFd, const std::string &password); 
+    void handlePassCommand(int clientFd, const std::string &password);
 private:
     int port;
     std::string password;
