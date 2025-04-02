@@ -129,3 +129,18 @@ void quit(Server *server, int clientFd, const cmd_syntax &parsed) {
 
     server->handleQuitCommand(clientFd, quitMessage);
 }
+
+void kick(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for KICK command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string targetNick = parsed.params[1];
+	std::string reason = parsed.message.empty() ? "No reason provided" : parsed.message;
+
+	server->handleKickCommand(clientFd, channel, targetNick, reason);
+}
+

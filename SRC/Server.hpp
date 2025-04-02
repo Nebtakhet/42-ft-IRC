@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/06 11:19:23 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/03/31 19:19:00 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,6 +61,9 @@ public:
     void handleQuitCommand(int clientFd, const std::string &quitMessage);
     void handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
     void handlePassCommand(int clientFd, const std::string &password);
+
+	void handleKickCommand(int clientFd, const std::string &channel, const std::string &target, const std::string &reason);
+
 private:
     int port;
     std::string password;

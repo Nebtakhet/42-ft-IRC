@@ -6,13 +6,14 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/19 22:02:53 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/02 11:56:16 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Parsing.hpp"
 #include "Commands.hpp"
+#include "Client.hpp"
 
 Server *serverInstance = nullptr;
 
@@ -395,4 +396,86 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage) {
     // Remove the client
     std::cout << "Client " << clientFd << " (" << nickname << ") disconnected with message: " << quitMessage << std::endl;
     removeClient(clientFd);
+}
+
+void Server::handleKickCommand(int clientFd, const std::string &channel, const std::string &target, const std::string &reason)
+{
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it == clients.end())
+    {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    auto channelIt = channels.find(channel);
+    if (channelIt == channels.end())
+    {
+        std::cerr << "Channel " << channel << " does not exist" << std::endl;
+        std::string response = "403 " + channel + " :No such channel\r\n";
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    auto &clientsInChannel = channelIt->second;
+
+    if (!it->hasCapability("Operator")){
+        std::cerr << "Client " << clientFd << " does not have permission to kick users from channel " << channel << std::endl;
+        std::string response = "482 " + channel + " :You're not channel operator\r\n";
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    auto targetIt = std::find_if(clients.begin(), clients.end(), [&target](const Client &client) {
+        return client.getNickname() == target;
+    });
+
+    if (targetIt == clients.end())
+    {
+        std::cerr << "User " << target << " does not exist" << std::endl;
+        std::string response = "401 " + target + " :No such nick/channel\r\n"; 
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    int targetFd = targetIt->getClientFd();
+
+    auto clientInChannelIt = std::find(clientsInChannel.begin(), clientsInChannel.end(), targetFd);
+    if (clientInChannelIt == clientsInChannel.end())
+    {
+        std::cerr << "User " << target << " is not in channel " << channel << std::endl;
+        std::string response = "441 " + target + " " + channel + " :They aren't on that channel\r\n";
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    if (targetFd == clientFd) {
+        std::cerr << "Client " << clientFd << " attempted to kick themselves from channel " << channel << std::endl;
+        std::string response = "482 " + channel + " :You cannot kick yourself\r\n";
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    std::string kickReason = reason.empty() ? "No reason given" : reason;
+    std::string kickMessage = ":" + it->getNickname() + " KICK " + channel + " " + target + " :" + kickReason + "\r\n";
+    for (int memberFd : clientsInChannel)
+    {
+        sendToClient(memberFd, kickMessage);
+    }
+
+    clientsInChannel.erase(clientInChannelIt);
+
+    std::string response = "You have been kicked from " + channel + " by " + it->getNickname() + " : " + kickReason + "\r\n";
+    sendToClient(targetFd, response);
+
+    if (clientsInChannel.empty())
+    {
+        channels.erase(channelIt);
+        std::cout << "Channel " << channel << " is now empty and has been removed" << std::endl;
+    }
+
+    std::cout << "Client " << targetFd << " (" << targetIt->getNickname() << ") was kicked from channel " 
+              << channel << " by " << it->getNickname() << " with reason: " << kickReason << std::endl;
 }

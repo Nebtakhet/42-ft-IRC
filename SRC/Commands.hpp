@@ -17,4 +17,6 @@ void help(Server *server, int clientFd, const cmd_syntax &parsed);
 void who(Server *server, int clientFd, const cmd_syntax &parsed);
 void quit(Server *server, int clientFd, const cmd_syntax &parsed);
 
+void kick(Server *server, int clientFd, const cmd_syntax &parsed);
+
 #endif
