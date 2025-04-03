@@ -67,8 +67,7 @@ void Server::handleConnections()
         clients.emplace_back(clientFd); 
         std::cout << "New client connected: " << clientFd << std::endl;
 
-        // Automatically join the default channel
-        handleJoinCommand(clientFd, DEFAULT_CHANNEL);
+        // Removed automatic join to default channel
     }
 
     if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -105,19 +104,14 @@ void Server::handleClient(int clientFd)
             std::string command = clientBuffer[clientFd].substr(0, pos);
             clientBuffer[clientFd].erase(0, pos + 1);
 
-            std::cout << "Client " << clientFd << ": " << command << std::endl;
-            messageBuffer(clientFd, command);
-        }
-
-        if (clientBuffer[clientFd].find('\0') != std::string::npos)
-        {
-            std::string command = clientBuffer[clientFd];
-            clientBuffer[clientFd].clear();
+            // Remove trailing '\r' if present
+            if (!command.empty() && command.back() == '\r') {
+                command.pop_back();
+            }
 
             std::cout << "Client " << clientFd << ": " << command << std::endl;
-            messageBuffer(clientFd, command);
+            handleIncomingMessage(command, clientFd);
         }
-        handleIncomingMessage(std::string(buffer, bytesRead), clientFd);
     }
     else if (bytesRead == 0)
     {

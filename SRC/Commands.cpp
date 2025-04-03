@@ -18,17 +18,21 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
 
     std::string subcommand = parsed.params[0];
     if (subcommand == "LS") {
-        server->handleCapLs(clientFd);
+        std::string capList = "multi-prefix sasl";
+        std::string response = "CAP * LS :" + capList + "\r\n";
+        server->sendToClient(clientFd, response);
     } else if (subcommand == "REQ") {
-        std::vector<std::string> capabilities;
-        std::istringstream iss(parsed.message);
-        std::string cap;
-        while (iss >> cap) {
-            capabilities.push_back(cap);
+        if (parsed.message.empty()) {
+            std::cerr << "No capabilities requested" << std::endl;
+            return;
         }
-        server->handleCapReq(clientFd, capabilities);
+
+        // Acknowledge requested capabilities
+        std::string response = "CAP * ACK :" + parsed.message + "\r\n";
+        server->sendToClient(clientFd, response);
     } else if (subcommand == "END") {
-        server->handleCapEnd(clientFd);
+        // Do nothing for CAP END, just proceed with registration
+        std::cout << "CAP negotiation ended for client " << clientFd << std::endl;
     } else {
         std::cerr << "Unknown CAP subcommand: " << subcommand << std::endl;
         std::string response = "CAP * NAK :" + subcommand + "\r\n";
@@ -37,7 +41,14 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
 }
 
 void join(Server *server, int clientFd, const cmd_syntax &parsed) {
-    std::string channel = parsed.params.empty() ? server->DEFAULT_CHANNEL : parsed.params[0];
+    if (parsed.params.empty()) {
+        std::cerr << "No channel provided for JOIN command" << std::endl;
+        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    std::string channel = parsed.params[0];
     server->handleJoinCommand(clientFd, channel);
 }
 
