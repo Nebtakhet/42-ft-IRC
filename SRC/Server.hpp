@@ -3,10 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
+<<<<<<< HEAD
 /*   Updated: 2025/03/31 19:19:00 by cesasanc         ###   ########.fr       */
+=======
+/*   Updated: 2025/04/04 01:51:16 by dbejar-s         ###   ########.fr       */
+>>>>>>> JOIN_function
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,9 +65,13 @@ public:
     void handleQuitCommand(int clientFd, const std::string &quitMessage);
     void handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
     void handlePassCommand(int clientFd, const std::string &password);
+<<<<<<< HEAD
 
 	void handleKickCommand(int clientFd, const std::string &channel, const std::string &target, const std::string &reason);
 
+=======
+    void sendWelcomeMessage(int clientFd, const Client &client);
+>>>>>>> JOIN_function
 private:
     int port;
     std::string password;
