@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/19 22:02:53 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/04 01:50:50 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,43 +31,50 @@ Server::~Server()
 }
 
 void Server::handleIncomingMessage(const std::string &message, int clientFd) {
-    try {
-        std::istringstream stream(message);
-        std::string line;
-        while (std::getline(stream, line)) {
-            if (line.back() == '\r') {
-                line.pop_back();
-            }
-            cmd_syntax parsed = parseIrcMessage(line);
+    cmd_syntax parsed = parseIrcMessage(message);
 
-            if (parsed.name == "NICK") {
-                handleNickCommand(clientFd, parsed.params[0]);
-            } else if (parsed.name == "CAP") {
-                cap(this, clientFd, parsed);
-            } else if (parsed.name == "JOIN") {
-                join(this, clientFd, parsed);
-            } else if (parsed.name == "PART") {
-                part(this, clientFd, parsed);
-            } else if (parsed.name == "USER") {
-                user(this, clientFd, parsed);
-            } else if (parsed.name == "PASS") {
-                pass(this, clientFd, parsed);
-            } else if (parsed.name == "PING") {
-                ping(this, clientFd, parsed);
-            } else if (parsed.name == "PRIVMSG") {
-                privmsg(this, clientFd, parsed);
-            } else if (parsed.name == "HELP") {
-                help(this, clientFd, parsed);
-            } else if (parsed.name == "WHO") {
-                who(this, clientFd, parsed);
-            } else if (parsed.name == "QUIT") {
-                quit(this, clientFd, parsed);
-            } else {
-                std::cerr << "ERROR: Unknown command.\n";
-            }
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end() && it->isCapNegotiating()) {
+        // Allow only CAP, PASS, NICK, and USER during CAP negotiation
+        if (parsed.name != "CAP" && parsed.name != "PASS" && parsed.name != "NICK" && parsed.name != "USER") {
+            std::cerr << "Ignoring command " << parsed.name << " during CAP negotiation for client " << clientFd << std::endl;
+            return;
         }
-    } catch (const std::exception &e) {
-        std::cerr << "Message parsing error: " << e.what() << std::endl;
+    }
+
+    // Process the command as usual
+    if (parsed.name == "CAP") {
+        cap(this, clientFd, parsed);
+    } else if (parsed.name == "PASS") {
+        pass(this, clientFd, parsed);
+    } else if (parsed.name == "NICK") {
+        nick(this, clientFd, parsed);
+    } else if (parsed.name == "USER") {
+        user(this, clientFd, parsed);
+    } else if (parsed.name == "JOIN") {
+        join(this, clientFd, parsed);
+    } else if (parsed.name == "PART") {
+        part(this, clientFd, parsed);
+    } else if (parsed.name == "PRIVMSG") {
+        privmsg(this, clientFd, parsed);
+    } else if (parsed.name == "PING") {
+        ping(this, clientFd, parsed);
+    } else if (parsed.name == "QUIT") {
+        quit(this, clientFd, parsed);
+    } else if (parsed.name == "HELP") {
+        help(this, clientFd, parsed);
+    } else if (parsed.name == "WHO") {
+        who(this, clientFd, parsed);
+    } else {
+        std::cerr << "Unknown command: " << parsed.name << std::endl;
+    }
+
+    // Check if the client is fully registered
+    if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty()) {
+        sendWelcomeMessage(clientFd, *it);
     }
 }
 
@@ -120,13 +127,27 @@ void Server::handleCapReq(int clientFd, const std::vector<std::string> &capabili
 }
 
 void Server::handleCapEnd(int clientFd) {
-    std::string response = "CAP * END\r\n";
-    sendToClient(clientFd, response); 
+    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
+        return client.getClientFd() == clientFd;
+    });
+
+    if (it != clients.end()) {
+        it->setCapNegotiation(false); // Mark CAP negotiation as complete
+        std::cout << "CAP negotiation ended for client " << clientFd << std::endl;
+    }
+
+    // No need to send a CAP END response; that was the damn mistake, motherfucker!!!!
 }
 
 void Server::handleJoinCommand(int clientFd, const std::string &channel)
 {
-    std::string joinChannel = channel.empty() ? DEFAULT_CHANNEL : channel;
+    if (channel.empty())
+    {
+        std::cerr << "No channel provided for JOIN command" << std::endl;
+        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        sendToClient(clientFd, response);
+        return;
+    }
 
     auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
         return client.getClientFd() == clientFd;
@@ -134,10 +155,21 @@ void Server::handleJoinCommand(int clientFd, const std::string &channel)
 
     if (it != clients.end())
     {
-        channels[joinChannel].push_back(clientFd);
-        std::string response = ":" + it->getNickname() + " JOIN " + joinChannel + "\r\n";
+        // Check if the channel already exists
+        auto channelIt = channels.find(channel);
+        if (channelIt == channels.end())
+        {
+            // Create the channel if it doesn't exist
+            channels[channel] = std::vector<int>();
+        }
+
+        // Add the client to the channel
+        channels[channel].push_back(clientFd);
+
+        // Notify the client and the channel
+        std::string response = ":" + it->getNickname() + " JOIN " + channel + "\r\n";
         sendToClient(clientFd, response);
-        std::cout << "Client " << clientFd << " joined channel " << joinChannel << std::endl;
+        std::cout << "Client " << clientFd << " joined channel " << channel << std::endl;
     }
     else
     {
@@ -395,4 +427,11 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage) {
     // Remove the client
     std::cout << "Client " << clientFd << " (" << nickname << ") disconnected with message: " << quitMessage << std::endl;
     removeClient(clientFd);
+}
+
+void Server::sendWelcomeMessage(int clientFd, const Client &client) {
+    std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\r\n";
+    sendToClient(clientFd, welcomeMessage);
+
+    std::cout << "Sent welcome message to client " << clientFd << std::endl;
 }

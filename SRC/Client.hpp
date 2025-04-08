@@ -31,6 +31,8 @@ class Client
         std::string		_mode;
         std::vector<std::string> _capabilities;
         bool            _authenticated;
+        bool            _capNegotiation; // New flag for CAP negotiation state
+
     
     public:
         Client(int clientFd);
@@ -61,6 +63,9 @@ class Client
 
         void setAuthenticated(bool authenticated); 
         bool isAuthenticated() const;
+
+        void setCapNegotiation(bool capNegotiation);
+        bool isCapNegotiating() const;  
 };
 
 #endif

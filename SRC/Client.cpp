@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false) {} // Initialize _authenticated
+Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(true) {} // Initialize _authenticated
 
 Client::~Client() {}
 
@@ -93,4 +93,12 @@ void Client::setAuthenticated(bool authenticated) {
 
 bool Client::isAuthenticated() const {
     return _authenticated;
+}
+
+void Client::setCapNegotiation(bool capNegotiation) {
+    _capNegotiation = capNegotiation;
+}
+
+bool Client::isCapNegotiating() const {
+    return _capNegotiation;
 }
