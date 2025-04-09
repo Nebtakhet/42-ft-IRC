@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/09 11:12:54 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/09 12:13:23 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,35 +51,45 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
     }
 
     // Process the command as usual
-    if (parsed.name == "CAP") {
+    if (parsed.name == "CAP")
         cap(this, clientFd, parsed);
-    } else if (parsed.name == "PASS") {
+    else if (parsed.name == "PASS")
         pass(this, clientFd, parsed);
-    } else if (parsed.name == "NICK") {
+    else if (parsed.name == "NICK")
         nick(this, clientFd, parsed);
-    } else if (parsed.name == "USER") {
+    else if (parsed.name == "USER")
         user(this, clientFd, parsed);
-    } else if (parsed.name == "JOIN") {
+    else if (parsed.name == "JOIN")
         join(this, clientFd, parsed);
-    } else if (parsed.name == "PART") {
+    else if (parsed.name == "PART")
         part(this, clientFd, parsed);
-    } else if (parsed.name == "PRIVMSG") {
+    else if (parsed.name == "PRIVMSG")
         privmsg(this, clientFd, parsed);
-    } else if (parsed.name == "PING") {
+    else if (parsed.name == "PING")
         ping(this, clientFd, parsed);
-    } else if (parsed.name == "QUIT") {
+    else if (parsed.name == "QUIT")
         quit(this, clientFd, parsed);
-    } else if (parsed.name == "HELP") {
+    else if (parsed.name == "HELP")
         help(this, clientFd, parsed);
-    } else if (parsed.name == "WHO") {
+    else if (parsed.name == "WHO")
         who(this, clientFd, parsed);
-    } else {
+	else if (parsed.name == "KICK")
+		kick(this, clientFd, parsed);
+	else if (parsed.name == "INVITE")
+		invite(this, clientFd, parsed);
+	else if (parsed.name == "TOPIC")
+		topic(this, clientFd, parsed);
+    else if (parsed.name == "MODE")
+		mode(this, clientFd, parsed);
+	else
         std::cerr << "Unknown command: " << parsed.name << std::endl;
-    }
+
 
     // Check if the client is fully registered
-    if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty()) {
+    if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty() && !it->isWelcomeSent())
+	{
         sendWelcomeMessage(clientFd, *it);
+        it->setWelcomeSent(true); // Mark the welcome message as sent
     }
 }
 
@@ -271,9 +281,11 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName)
     }
 }
 
-void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message) {
+void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message)
+{
     Client *client = getClient(clientFd);
-    if (!client) {
+    if (!client)
+	{
         std::cerr << "Client " << clientFd << " not found" << std::endl;
         return;
     }
@@ -281,27 +293,42 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
     std::string sender = client->getNickname();
 
     // Check if the target is a channel
-    if (target[0] == '#') {
+    if (target[0] == '#')
+	{
         Channel *channel = getChannel(target);
-        if (!channel) {
+        if (!channel)
+		{
             std::cerr << "Channel " << target << " does not exist" << std::endl;
             std::string response = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
             sendToClient(clientFd, response);
             return;
         }
 
+        // Check if the client is a member of the channel
+        if (!channel->isMember(clientFd))
+		{
+            std::cerr << "Client " << clientFd << " is not a member of channel " << target << std::endl;
+            std::string response = "442 " + target + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
+            sendToClient(clientFd, response);
+            return;
+        }
+
         // Send the message to all clients in the channel except the sender
-        for (int memberFd : channel->getMembers()) {
-            if (memberFd != clientFd) {
+        for (int memberFd : channel->getMembers())
+		{
+            if (memberFd != clientFd)
+			{
                 std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
                 sendToClient(memberFd, response);
                 std::cout << "Sent message to client " << memberFd << " in channel " << target << std::endl;
             }
         }
-    } else {
+    } else
+	{
         // Target is a user
         Client *targetClient = getClientByNickname(target);
-        if (!targetClient) {
+        if (!targetClient)
+		{
             std::cerr << "User " << target << " does not exist" << std::endl;
             std::string response = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
             sendToClient(clientFd, response);

@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/08 19:04:45 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/09 11:44:03 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -200,24 +200,48 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
     }
 }
 
-void Server::handleModeCommand(int clientFd, const std::string &channelName, const std::string &mode, const std::string &parameter) {
+void Server::handleModeCommand(int clientFd, const std::string &target, const std::string &mode, const std::string &parameter)
+{
     Client *client = getClient(clientFd);
-    if (!client)
+    if (!client) 
 	{
-        sendToClient(clientFd, "401 :Client not found\r\n");
+        sendToClient(clientFd, "401 :Client not found\r\n"); // ERR_NOSUCHNICK
         return;
     }
 
-    Channel *channel = getChannel(channelName);
+    // Check if the target is a user
+    if (target == client->getNickname())
+	{
+        // Handle user modes (e.g., +i for invisible)
+        if (mode == "+i")
+		{
+            client->addMode("i");
+            std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
+            sendToClient(clientFd, response);
+            std::cout << "Set user mode " << mode << " for client " << clientFd << std::endl;
+        }
+		else if (mode == "-i")
+		{
+            client->removeMode("i");
+            std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
+            sendToClient(clientFd, response);
+            std::cout << "Removed user mode " << mode << " for client " << clientFd << std::endl;
+        }
+		else
+            sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
+        return;
+    }
+
+    Channel *channel = getChannel(target);
     if (!channel)
 	{
-        sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
+        sendToClient(clientFd, "403 " + target + " :No such channel\r\n");
         return;
     }
 
     if (!channel->isOperator(clientFd))
 	{
-        sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n");
+        sendToClient(clientFd, "482 " + target + " :You're not channel operator\r\n");
         return;
     }
 
@@ -252,15 +276,15 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, con
         else
             channel->removeOperator(targetFd);
     }
-    else 
+	else
 	{
         sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
         return;
     }
 
-    std::string response = ":" + client->getNickname() + " MODE " + channelName + " " + mode + " " + parameter + "\r\n";
+    std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + " " + parameter + "\r\n";
     for (int memberFd : channel->getMembers())
         sendToClient(memberFd, response);
 
-    std::cout << "Client " << clientFd << " set mode " << mode << " for channel " << channelName << std::endl;
+    std::cout << "Client " << clientFd << " set mode " << mode << " for channel " << target << std::endl;
 }

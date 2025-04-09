@@ -156,3 +156,42 @@ void kick(Server *server, int clientFd, const cmd_syntax &parsed)
 	server->handleKickCommand(clientFd, channel, targetNick, reason);
 }
 
+void invite(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for INVITE command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string targetNick = parsed.params[1];
+
+	server->handleInviteCommand(clientFd, channel, targetNick);
+}
+
+void topic(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.empty()) {
+		std::cerr << "No channel provided for TOPIC command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string topic = parsed.message;
+
+	server->handleTopicCommand(clientFd, channel, topic);
+}
+
+void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for MODE command" << std::endl;
+		return;
+	}
+
+	std::string target = parsed.params[0];
+	std::string mode = parsed.params[1];
+	std::string parameter = parsed.params.size() > 2 ? parsed.params[2] : "";
+
+	server->handleModeCommand(clientFd, target, mode, parameter);
+}
