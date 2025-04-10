@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+         #
+#    By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/02/06 12:52:59 by cesasanc          #+#    #+#              #
-#    Updated: 2025/02/28 14:35:35 by cesasanc         ###   ########.fr        #
+#    Updated: 2025/04/08 20:05:17 by cesasanc         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,7 +20,8 @@ SRCS =	main.cpp \
 		ServerConnection.cpp \
         Client.cpp \
         Parsing.cpp \
-        Commands.cpp
+        Commands.cpp \
+		ChannelOperators.cpp \
 
 SRCS := $(addprefix $(SRCDIR)/, $(SRCS))
 OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)

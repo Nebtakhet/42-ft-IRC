@@ -49,6 +49,7 @@ void join(Server *server, int clientFd, const cmd_syntax &parsed) {
     }
 
     std::string channel = parsed.params[0];
+    std::cout << "Handling JOIN command for client " << clientFd << " with channel " << channel << std::endl;
     server->handleJoinCommand(clientFd, channel);
 }
 
@@ -139,4 +140,58 @@ void quit(Server *server, int clientFd, const cmd_syntax &parsed) {
     std::string quitMessage = parsed.message.empty() ? "Client disconnected" : parsed.message;
 
     server->handleQuitCommand(clientFd, quitMessage);
+}
+
+void kick(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for KICK command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string targetNick = parsed.params[1];
+	std::string reason = parsed.message.empty() ? "No reason provided" : parsed.message;
+
+	server->handleKickCommand(clientFd, channel, targetNick, reason);
+}
+
+void invite(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for INVITE command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string targetNick = parsed.params[1];
+
+	server->handleInviteCommand(clientFd, channel, targetNick);
+}
+
+void topic(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.empty()) {
+		std::cerr << "No channel provided for TOPIC command" << std::endl;
+		return;
+	}
+
+	std::string channel = parsed.params[0];
+	std::string topic = parsed.message;
+
+	server->handleTopicCommand(clientFd, channel, topic);
+}
+
+void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
+{
+	if (parsed.params.size() < 2) {
+		std::cerr << "Not enough parameters for MODE command" << std::endl;
+		return;
+	}
+
+	std::string target = parsed.params[0];
+	std::string mode = parsed.params[1];
+	std::string parameter = parsed.params.size() > 2 ? parsed.params[2] : "";
+
+	server->handleModeCommand(clientFd, target, mode, parameter);
 }

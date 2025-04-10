@@ -32,6 +32,7 @@ class Client
         std::vector<std::string> _capabilities;
         bool            _authenticated;
         bool            _capNegotiation; // New flag for CAP negotiation state
+		bool			_welcomeSent; // Flag to check if welcome message has been sent
 
     
     public:
@@ -65,7 +66,10 @@ class Client
         bool isAuthenticated() const;
 
         void setCapNegotiation(bool capNegotiation);
-        bool isCapNegotiating() const;  
+        bool isCapNegotiating() const; 
+
+		void setWelcomeSent(bool welcomeSent) { _welcomeSent = welcomeSent; }
+		bool isWelcomeSent() const { return _welcomeSent; }
 };
 
 #endif

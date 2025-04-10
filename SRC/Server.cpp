@@ -3,16 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/04 01:50:50 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/09 13:22:14 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include "Parsing.hpp"
 #include "Commands.hpp"
+#include "Client.hpp"
+#include "Channel.hpp"
 
 Server *serverInstance = nullptr;
 
@@ -38,43 +40,56 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
     });
 
     if (it != clients.end() && it->isCapNegotiating()) {
-        // Allow only CAP, PASS, NICK, and USER during CAP negotiation
-        if (parsed.name != "CAP" && parsed.name != "PASS" && parsed.name != "NICK" && parsed.name != "USER") {
+        // Allow all implemented commands during CAP negotiation
+        if (parsed.name != "CAP" && parsed.name != "PASS" && parsed.name != "NICK" && parsed.name != "USER" &&
+            parsed.name != "JOIN" && parsed.name != "PART" && parsed.name != "PRIVMSG" && parsed.name != "PING" &&
+            parsed.name != "QUIT" && parsed.name != "HELP" && parsed.name != "WHO" && parsed.name != "KICK" &&
+            parsed.name != "INVITE" && parsed.name != "TOPIC" && parsed.name != "MODE") {
             std::cerr << "Ignoring command " << parsed.name << " during CAP negotiation for client " << clientFd << std::endl;
             return;
         }
     }
 
     // Process the command as usual
-    if (parsed.name == "CAP") {
+    if (parsed.name == "CAP")
         cap(this, clientFd, parsed);
-    } else if (parsed.name == "PASS") {
+    else if (parsed.name == "PASS")
         pass(this, clientFd, parsed);
-    } else if (parsed.name == "NICK") {
+    else if (parsed.name == "NICK")
         nick(this, clientFd, parsed);
-    } else if (parsed.name == "USER") {
+    else if (parsed.name == "USER")
         user(this, clientFd, parsed);
-    } else if (parsed.name == "JOIN") {
+    else if (parsed.name == "JOIN")
         join(this, clientFd, parsed);
-    } else if (parsed.name == "PART") {
+    else if (parsed.name == "PART")
         part(this, clientFd, parsed);
-    } else if (parsed.name == "PRIVMSG") {
+    else if (parsed.name == "PRIVMSG")
         privmsg(this, clientFd, parsed);
-    } else if (parsed.name == "PING") {
+    else if (parsed.name == "PING")
         ping(this, clientFd, parsed);
-    } else if (parsed.name == "QUIT") {
+    else if (parsed.name == "QUIT")
         quit(this, clientFd, parsed);
-    } else if (parsed.name == "HELP") {
+    else if (parsed.name == "HELP")
         help(this, clientFd, parsed);
-    } else if (parsed.name == "WHO") {
+    else if (parsed.name == "WHO")
         who(this, clientFd, parsed);
-    } else {
+	else if (parsed.name == "KICK")
+		kick(this, clientFd, parsed);
+	else if (parsed.name == "INVITE")
+		invite(this, clientFd, parsed);
+	else if (parsed.name == "TOPIC")
+		topic(this, clientFd, parsed);
+    else if (parsed.name == "MODE")
+		mode(this, clientFd, parsed);
+	else
         std::cerr << "Unknown command: " << parsed.name << std::endl;
-    }
+
 
     // Check if the client is fully registered
-    if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty()) {
+    if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty() && !it->isWelcomeSent())
+	{
         sendWelcomeMessage(clientFd, *it);
+        it->setWelcomeSent(true); // Mark the welcome message as sent
     }
 }
 
@@ -139,42 +154,62 @@ void Server::handleCapEnd(int clientFd) {
     // No need to send a CAP END response; that was the damn mistake, motherfucker!!!!
 }
 
-void Server::handleJoinCommand(int clientFd, const std::string &channel)
+void Server::handleJoinCommand(int clientFd, const std::string &channelName)
 {
-    if (channel.empty())
+    if (channelName.empty())
     {
         std::cerr << "No channel provided for JOIN command" << std::endl;
-        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 JOIN :Not enough parameters\r\n";
         sendToClient(clientFd, response);
         return;
     }
 
-    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
-        return client.getClientFd() == clientFd;
-    });
-
-    if (it != clients.end())
+    Client *client = getClient(clientFd);
+    if (!client)
     {
-        // Check if the channel already exists
-        auto channelIt = channels.find(channel);
-        if (channelIt == channels.end())
-        {
-            // Create the channel if it doesn't exist
-            channels[channel] = std::vector<int>();
-        }
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
 
-        // Add the client to the channel
-        channels[channel].push_back(clientFd);
+    Channel *channel = getChannel(channelName);
+    if (!channel)
+    {
+        auto result = channels.emplace(channelName, Channel(channelName));
+        channel = &result.first->second;
 
-        // Notify the client and the channel
-        std::string response = ":" + it->getNickname() + " JOIN " + channel + "\r\n";
-        sendToClient(clientFd, response);
-        std::cout << "Client " << clientFd << " joined channel " << channel << std::endl;
+        channel->addOperator(clientFd);
+        std::cout << "Channel " << channelName << " created and client " << clientFd << " set as operator" << std::endl;
     }
     else
     {
-        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        if (channel->isInviteOnly() && !channel->isInvited(clientFd))
+        {
+            std::cerr << "Client " << clientFd << " attempted to join invite-only channel " << channelName << " without an invitation" << std::endl;
+            std::string response = "473 " + channelName + " :Cannot join channel (+i)\r\n"; 
+            sendToClient(clientFd, response);
+            return;
+        }
     }
+
+    if (channel->isMember(clientFd))
+    {
+        std::cerr << "Client " << clientFd << " is already in channel " << channelName << std::endl;
+        return;
+    }
+
+    channel->addMember(clientFd);
+    std::cout << "Added client " << clientFd << " to channel " << channelName << std::endl;
+
+    std::string response = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
+    sendToClient(clientFd, response);
+
+    for (int memberFd : channel->getMembers())
+    {
+        if (memberFd != clientFd)
+            sendToClient(memberFd, response);
+    }
+
+    std::cout << "Client " << clientFd << " joined channel " << channelName << std::endl;
 }
 
 void Server::handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname)
@@ -223,75 +258,87 @@ void Server::handlePassCommand(int clientFd, const std::string &password)
     }
 }
 
-void Server::handlePartCommand(int clientFd, const std::string &channel) {
-    auto it = channels.find(channel);
-    if (it == channels.end()) {
-        std::cerr << "Channel " << channel << " does not exist" << std::endl;
-        std::string response = "403 " + channel + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+void Server::handlePartCommand(int clientFd, const std::string &channelName)
+{
+    Channel *channel = getChannel(channelName);
+    if (!channel) {
+        std::cerr << "Channel " << channelName << " does not exist" << std::endl;
+        std::string response = "403 " + channelName + " :No such channel\r\n"; 
         sendToClient(clientFd, response);
         return;
     }
 
-    auto &clientsInChannel = it->second;
-    auto clientIt = std::find(clientsInChannel.begin(), clientsInChannel.end(), clientFd);
-    if (clientIt == clientsInChannel.end()) {
-        std::cerr << "Client " << clientFd << " is not in channel " << channel << std::endl;
-        std::string response = "442 " + channel + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
+    if (!channel->isMember(clientFd)) {
+        std::cerr << "Client " << clientFd << " is not in channel " << channelName << std::endl;
+        std::string response = "442 " + channelName + " :You're not on that channel\r\n";
         sendToClient(clientFd, response);
         return;
     }
 
-    // Remove the client from the channel
-    clientsInChannel.erase(clientIt);
-    std::cout << "Client " << clientFd << " left channel " << channel << std::endl;
+    channel->removeMember(clientFd);
+    std::cout << "Client " << clientFd << " left channel " << channelName << std::endl;
 
-    // Notify the client and the channel
-    std::string response = ":" + clients[clientFd].getNickname() + " PART " + channel + "\r\n";
+    std::string response = ":" + getClient(clientFd)->getNickname() + " PART " + channelName + "\r\n";
     sendToClient(clientFd, response);
 
-    // If the channel is empty, remove it
-    if (clientsInChannel.empty()) {
-        channels.erase(it);
-        std::cout << "Channel " << channel << " is now empty and has been removed" << std::endl;
+    for (int memberFd : channel->getMembers()) {
+        sendToClient(memberFd, response);
+    }
+
+    if (channel->getMembers().empty()) {
+        channels.erase(channelName);
+        std::cout << "Channel " << channelName << " is now empty and has been removed" << std::endl;
     }
 }
 
-void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message) {
-    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
-        return client.getClientFd() == clientFd;
-    });
-
-    if (it == clients.end()) {
+void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message)
+{
+    Client *client = getClient(clientFd);
+    if (!client)
+	{
         std::cerr << "Client " << clientFd << " not found" << std::endl;
         return;
     }
 
-    std::string sender = it->getNickname();
+    std::string sender = client->getNickname();
 
     // Check if the target is a channel
-    if (target[0] == '#') {
-        auto channelIt = channels.find(target);
-        if (channelIt == channels.end()) {
+    if (target[0] == '#')
+	{
+        Channel *channel = getChannel(target);
+        if (!channel)
+		{
             std::cerr << "Channel " << target << " does not exist" << std::endl;
             std::string response = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
             sendToClient(clientFd, response);
             return;
         }
 
+        // Check if the client is a member of the channel
+        if (!channel->isMember(clientFd))
+		{
+            std::cerr << "Client " << clientFd << " is not a member of channel " << target << std::endl;
+            std::string response = "442 " + target + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
+            sendToClient(clientFd, response);
+            return;
+        }
+
         // Send the message to all clients in the channel except the sender
-        for (int memberFd : channelIt->second) {
-            if (memberFd != clientFd) {
+        for (int memberFd : channel->getMembers())
+		{
+            if (memberFd != clientFd)
+			{
                 std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
                 sendToClient(memberFd, response);
+                std::cout << "Sent message to client " << memberFd << " in channel " << target << std::endl;
             }
         }
-    } else {
+    } else
+	{
         // Target is a user
-        auto targetIt = std::find_if(clients.begin(), clients.end(), [&target](const Client &client) {
-            return client.getNickname() == target;
-        });
-
-        if (targetIt == clients.end()) {
+        Client *targetClient = getClientByNickname(target);
+        if (!targetClient)
+		{
             std::cerr << "User " << target << " does not exist" << std::endl;
             std::string response = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
             sendToClient(clientFd, response);
@@ -299,7 +346,7 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
         }
 
         // Send the message to the target user
-        int targetFd = targetIt->getClientFd();
+        int targetFd = targetClient->getClientFd();
         std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
         sendToClient(targetFd, response);
     }
@@ -332,99 +379,98 @@ void Server::handleHelpCommand(int clientFd) {
     sendToClient(clientFd, response);
 }
 
-void Server::handleWhoCommand(int clientFd, const std::string &target) {
+void Server::handleWhoCommand(int clientFd, const std::string &target)
+{
     std::ostringstream response;
 
-    if (target.empty()) {
+    if (target.empty())
+	{
         // WHO without a target: list all users on the server
         for (const Client &client : clients) {
             response << client.getNickname() << " "
                      << client.getUsername() << " "
                      << client.getRealname() << "\r\n";
         }
-    } else if (target[0] == '#') {
+    }
+	else if (target[0] == '#')
+	{
         // WHO for a channel
-        auto channelIt = channels.find(target);
-        if (channelIt == channels.end()) {
+        Channel *channel = getChannel(target);
+        if (!channel)
+		{
             std::cerr << "Channel " << target << " does not exist" << std::endl;
             std::string errorResponse = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
             sendToClient(clientFd, errorResponse);
             return;
         }
 
-        for (int memberFd : channelIt->second) {
-            auto it = std::find_if(clients.begin(), clients.end(), [memberFd](const Client &client) {
-                return client.getClientFd() == memberFd;
-            });
-
-            if (it != clients.end()) {
-                response << it->getNickname() << " "
-                         << it->getUsername() << " "
-                         << it->getRealname() << "\r\n";
+        for (int memberFd : channel->getMembers())
+		{
+            Client *member = getClient(memberFd);
+            if (member)
+			{
+                response << member->getNickname() << " "
+                         << member->getUsername() << " "
+                         << member->getRealname() << "\r\n";
             }
         }
-    } else {
+    }
+	else
+	{
         // WHO for a specific user
-        auto it = std::find_if(clients.begin(), clients.end(), [&target](const Client &client) {
-            return client.getNickname() == target;
-        });
-
-        if (it == clients.end()) {
+        Client *targetClient = getClientByNickname(target);
+        if (!targetClient)
+		{
             std::cerr << "User " << target << " does not exist" << std::endl;
             std::string errorResponse = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
             sendToClient(clientFd, errorResponse);
             return;
         }
 
-        response << it->getNickname() << " "
-                 << it->getUsername() << " "
-                 << it->getRealname() << "\r\n";
+        response << targetClient->getNickname() << " "
+                 << targetClient->getUsername() << " "
+                 << targetClient->getRealname() << "\r\n";
     }
 
     sendToClient(clientFd, response.str());
 }
 
-void Server::handleQuitCommand(int clientFd, const std::string &quitMessage) {
-    auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
-        return client.getClientFd() == clientFd;
-    });
-
-    if (it == clients.end()) {
+void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
+{
+    Client *client = getClient(clientFd);
+    if (!client)
+	{
         std::cerr << "Client " << clientFd << " not found" << std::endl;
         return;
     }
 
-    std::string nickname = it->getNickname();
+    std::string nickname = client->getNickname();
 
-    // Notify all channels the client is part of
-    for (auto &channel : channels) {
-        auto &clientsInChannel = channel.second;
-        if (std::find(clientsInChannel.begin(), clientsInChannel.end(), clientFd) != clientsInChannel.end()) {
+    for (auto &channelPair : channels)
+	{
+        Channel &channel = channelPair.second;
+        if (channel.isMember(clientFd))
+		{
             std::string response = ":" + nickname + " QUIT :" + quitMessage + "\r\n";
-            for (int memberFd : clientsInChannel) {
-                if (memberFd != clientFd) {
+            for (int memberFd : channel.getMembers())
+			{
+                if (memberFd != clientFd)
                     sendToClient(memberFd, response);
-                }
             }
         }
     }
 
-    // Remove the client from all channels
-    for (auto &channel : channels) {
-        auto &clientsInChannel = channel.second;
-        clientsInChannel.erase(std::remove(clientsInChannel.begin(), clientsInChannel.end(), clientFd), clientsInChannel.end());
-    }
+    for (auto it = channels.begin(); it != channels.end();)
+	{
+        Channel &channel = it->second;
+        channel.removeMember(clientFd);
 
-    // Remove empty channels
-    for (auto it = channels.begin(); it != channels.end();) {
-        if (it->second.empty()) {
+        if (channel.getMembers().empty())
             it = channels.erase(it);
-        } else {
+        else
             ++it;
-        }
     }
 
-    // Remove the client
     std::cout << "Client " << clientFd << " (" << nickname << ") disconnected with message: " << quitMessage << std::endl;
     removeClient(clientFd);
 }
@@ -434,4 +480,50 @@ void Server::sendWelcomeMessage(int clientFd, const Client &client) {
     sendToClient(clientFd, welcomeMessage);
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
+}
+
+void Server::handleTopicCommand(int clientFd, const std::string &channelName, const std::string &topic)
+{
+    Client *client = getClient(clientFd);
+    if (!client)
+    {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    Channel *channel = getChannel(channelName);
+    if (!channel)
+    {
+        std::cerr << "Channel " << channelName << " does not exist" << std::endl;
+        sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
+        return;
+    }
+
+    if (!topic.empty())
+    {
+        // Check if the channel has topic protection and if the client is an operator
+        if (channel->isTopicProtected() && !channel->isOperator(clientFd))
+        {
+            std::cerr << "Client " << clientFd << " does not have permission to set the topic for channel " << channelName << std::endl;
+            sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n"); // ERR_CHANOPRIVSNEEDED
+            return;
+        }
+
+        channel->setTopic(topic);
+        std::string topicMessage = ":" + client->getNickname() + " TOPIC " + channelName + " :" + topic + "\r\n";
+
+        for (int memberFd : channel->getMembers())
+            sendToClient(memberFd, topicMessage);
+
+        std::cout << "Client " << clientFd << " (" << client->getNickname() << ") set topic for channel "
+                  << channelName << " to: " << topic << std::endl;
+    }
+    else
+    {
+        std::string currentTopic = channel->getTopic();
+        if (!currentTopic.empty())
+            sendToClient(clientFd, "332 " + channelName + " :" + currentTopic + "\r\n"); // RPL_TOPIC
+        else
+            sendToClient(clientFd, "331 " + channelName + " :No topic is set\r\n"); // RPL_NOTOPIC
+    }
 }

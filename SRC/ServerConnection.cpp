@@ -146,10 +146,14 @@ void Server::removeClient(int clientFd)
         return client.getClientFd() == clientFd;
     }), clients.end());
 
-    for (auto &channel : channels)
-    {
-        channel.second.erase(std::remove(channel.second.begin(), channel.second.end(), clientFd), channel.second.end());
-    }
+	for (auto &channelPair : channels)
+	{
+		Channel &channel = channelPair.second;
+		channel.removeMember(clientFd);
+		if (channel.getMembers().empty())
+			channels.erase(channelPair.first);
+	}
+	std::cout << "Client " << clientFd << " removed" << std::endl;
 }
 
 /* Function to close the server. It closes all client connections and the server socket. */
