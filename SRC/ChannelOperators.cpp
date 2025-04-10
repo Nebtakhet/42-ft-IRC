@@ -153,7 +153,7 @@ void Server::handleInviteCommand(int clientFd, const std::string &channelName, c
     std::cout << "Client " << targetFd << " (" << targetClient->getNickname() << ") was invited to channel " 
               << channelName << " by " << client->getNickname() << std::endl;
 }
-
+/*
 void Server::handleTopicCommand(int clientFd, const std::string &channelName, const std::string &topic)
 {
     Client *client = getClient(clientFd);
@@ -199,6 +199,7 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
             sendToClient(clientFd, "331 " + channelName + " :No topic is set\r\n");
     }
 }
+*/
 
 void Server::handleModeCommand(int clientFd, const std::string &target, const std::string &mode, const std::string &parameter)
 {
