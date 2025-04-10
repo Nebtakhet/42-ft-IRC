@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/09 13:23:39 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/10 22:57:30 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,6 +99,7 @@ void Server::handleKickCommand(int clientFd, const std::string &channelName, con
         sendToClient(memberFd, kickMessage);
 
     channel->removeMember(targetFd);
+	targetClient->leaveChannel(channelName);
     sendToClient(targetFd, "You have been kicked from " + channelName + " by " + client->getNickname() + " : " + kickReason + "\r\n");
 
     if (channel->getMembers().empty())
