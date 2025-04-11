@@ -289,3 +289,24 @@ void Server::handleModeCommand(int clientFd, const std::string &target, const st
 
     std::cout << "Client " << clientFd << " set mode " << mode << " for channel " << target << std::endl;
 }
+
+
+void Channel::removeMember(int clientFd)
+{
+    members.erase(clientFd);
+
+    // Use Server's getClient function to retrieve the client
+    Server *server = Server::serverInstance;
+    if (!server)
+    {
+        std::cerr << "Server instance not found" << std::endl;
+        return;
+    }
+
+    Client *client = server->getClient(clientFd);
+    if (client)
+    {
+        // Clear the client's current channel
+        client->setCurrentChannel("");
+    }
+}

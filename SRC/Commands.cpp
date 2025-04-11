@@ -96,7 +96,7 @@ void part(Server *server, int clientFd, const cmd_syntax &parsed) {
     }
 
     std::string channel = parsed.params[0];
-    server->handlePartCommand(clientFd, channel);
+    server->handlePartCommand(clientFd, channel, parsed);
 }
 
 void privmsg(Server *server, int clientFd, const cmd_syntax &parsed) {

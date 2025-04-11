@@ -44,7 +44,7 @@ class Channel
 		int					getUserLimit() const { return userLimit; }
 
 		void				addMember(int clientFd) { members.insert(clientFd); }
-		void				removeMember(int clientFd) { members.erase(clientFd); }
+		void				removeMember(int clientFd);
 		bool				isMember(int clientFd) const { return members.find(clientFd) != members.end(); }
 		const std::set<int>	&getMembers() const { return members; }
 		
