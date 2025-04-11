@@ -16,6 +16,8 @@
 # include <string>
 # include <cerrno>
 # include <ctime>
+# include <algorithm>
+# include <set>
 
 class Client
 {
@@ -28,6 +30,13 @@ class Client
         std::string		_username;
         std::string		_realname;
         std::string		_mode;
+        std::vector<std::string> _capabilities;
+        bool            _authenticated;
+        bool            _capNegotiation; // New flag for CAP negotiation state
+		bool			_welcomeSent; // Flag to check if welcome message has been sent
+		
+        std::set<std::string> joinedChannels;
+
     
     public:
         Client(int clientFd);
@@ -40,7 +49,7 @@ class Client
         std::string&	getSendBuffer();
         void			setSendBuffer(std::string const &buf);
 
-        std::string&	getNickname();
+        const std::string& getNickname() const; 
         void			setOldNickname(std::string const &nickname);
         std::string&	getOldNickname();
         void			setUsername(std::string const &username);
@@ -49,8 +58,25 @@ class Client
         std::string		getRealname()const;
 
         std::string&	getMode();
-        void			addMode(std::string const mode);
-        void			removeMode(std::string const mode);
+        void			addMode(const std::string &mode);
+        void			removeMode(const std::string &mode);
+
+        void addCapability(const std::string &capability);
+        bool hasCapability(const std::string &capability) const;
+        void clearCapabilities();
+
+        void setAuthenticated(bool authenticated); 
+        bool isAuthenticated() const;
+
+        void setCapNegotiation(bool capNegotiation);
+        bool isCapNegotiating() const; 
+
+		void setWelcomeSent(bool welcomeSent) { _welcomeSent = welcomeSent; }
+		bool isWelcomeSent() const { return _welcomeSent; }
+
+        void joinChannel(const std::string &channelName) { joinedChannels.insert(channelName); }
+        void leaveChannel(const std::string &channelName) { joinedChannels.erase(channelName); }
+        const std::set<std::string> &getJoinedChannels() const { return joinedChannels; }
 };
 
 #endif

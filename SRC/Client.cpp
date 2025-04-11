@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(int clientFd) : _clientFd(clientFd) {}
+Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(true) {} // Initialize _authenticated
 
 Client::~Client() {}
 
@@ -28,7 +28,7 @@ void Client::setSendBuffer(const std::string &buf) {
     _send_buffer = buf;
 }
 
-std::string& Client::getNickname() {
+const std::string& Client::getNickname() const { 
     return _nickname;
 }
 
@@ -60,15 +60,45 @@ std::string& Client::getMode() {
     return _mode;
 }
 
-void Client::addMode(std::string mode) {
+void Client::addMode(const std::string &mode) {
     if (_mode.find(mode) == std::string::npos) {
         _mode += mode;
     }
 }
 
-void Client::removeMode(std::string mode) {
+void Client::removeMode(const std::string &mode) {
     size_t pos = _mode.find(mode);
     if (pos != std::string::npos) {
         _mode.erase(pos, mode.length());
     }
+}
+
+void Client::addCapability(const std::string &capability) {
+    if (std::find(_capabilities.begin(), _capabilities.end(), capability) == _capabilities.end()) {
+        _capabilities.push_back(capability);
+    }
+}
+
+bool Client::hasCapability(const std::string &capability) const {
+    return std::find(_capabilities.begin(), _capabilities.end(), capability) != _capabilities.end();
+}
+
+void Client::clearCapabilities() {
+    _capabilities.clear();
+}
+
+void Client::setAuthenticated(bool authenticated) {
+    _authenticated = authenticated;
+}
+
+bool Client::isAuthenticated() const {
+    return _authenticated;
+}
+
+void Client::setCapNegotiation(bool capNegotiation) {
+    _capNegotiation = capNegotiation;
+}
+
+bool Client::isCapNegotiating() const {
+    return _capNegotiation;
 }
