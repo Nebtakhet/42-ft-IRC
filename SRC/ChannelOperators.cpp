@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/09 13:23:39 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/10 22:57:30 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,6 +99,7 @@ void Server::handleKickCommand(int clientFd, const std::string &channelName, con
         sendToClient(memberFd, kickMessage);
 
     channel->removeMember(targetFd);
+	targetClient->leaveChannel(channelName);
     sendToClient(targetFd, "You have been kicked from " + channelName + " by " + client->getNickname() + " : " + kickReason + "\r\n");
 
     if (channel->getMembers().empty())
@@ -209,30 +210,39 @@ void Server::handleModeCommand(int clientFd, const std::string &target, const st
         sendToClient(clientFd, "401 :Client not found\r\n"); // ERR_NOSUCHNICK
         return;
     }
-
+    
     // Check if the target is a user
     if (target == client->getNickname())
 	{
-        // Handle user modes (e.g., +i for invisible)
+        // Handle user modes (e.g., +i for invite only)
         if (mode == "+i")
 		{
-            client->addMode("i");
+            channel->setInviteOnly(true);
+          /*client->addMode("i");
             std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
             sendToClient(clientFd, response);
-            std::cout << "Set user mode " << mode << " for client " << clientFd << std::endl;
+            std::cout << "Set user mode " << mode << " for client " << clientFd << std::endl;*/
         }
 		else if (mode == "-i")
 		{
-            client->removeMode("i");
+            channel->setInviteOnly(false);
+        /*  client->removeMode("i");
             std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
             sendToClient(clientFd, response);
-            std::cout << "Removed user mode " << mode << " for client " << clientFd << std::endl;
+            std::cout << "Removed user mode " << mode << " for client " << clientFd << std::endl;*/
         }
+       /* else if (mode == "-t")
+        else if (mode == "+t")
+        else if (mode == "-k")
+        else if (mode == "+k")
+        else if (mode == "-o")
+        else if (mode == "+o")*/
 		else
             sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
         return;
     }
-
+    
+    
     Channel *channel = getChannel(target);
     if (!channel)
 	{
@@ -294,7 +304,7 @@ void Server::handleModeCommand(int clientFd, const std::string &target, const st
 void Channel::removeMember(int clientFd)
 {
     members.erase(clientFd);
-
+/*
     // Use Server's getClient function to retrieve the client
     Server *server = Server::serverInstance;
     if (!server)
@@ -308,5 +318,5 @@ void Channel::removeMember(int clientFd)
     {
         // Clear the client's current channel
         client->setCurrentChannel("");
-    }
+    }*/
 }

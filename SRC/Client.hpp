@@ -17,6 +17,7 @@
 # include <cerrno>
 # include <ctime>
 # include <algorithm>
+# include <set>
 
 class Client
 {
@@ -33,6 +34,8 @@ class Client
         bool            _authenticated;
         bool            _capNegotiation; // New flag for CAP negotiation state
 		bool			_welcomeSent; // Flag to check if welcome message has been sent
+		
+        std::set<std::string> joinedChannels;
 
     
     public:
@@ -70,6 +73,10 @@ class Client
 
 		void setWelcomeSent(bool welcomeSent) { _welcomeSent = welcomeSent; }
 		bool isWelcomeSent() const { return _welcomeSent; }
+
+        void joinChannel(const std::string &channelName) { joinedChannels.insert(channelName); }
+        void leaveChannel(const std::string &channelName) { joinedChannels.erase(channelName); }
+        const std::set<std::string> &getJoinedChannels() const { return joinedChannels; }
 };
 
 #endif

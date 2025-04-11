@@ -191,7 +191,13 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
 
 	std::string target = parsed.params[0];
 	std::string mode = parsed.params[1];
-	std::string parameter = parsed.params.size() > 2 ? parsed.params[2] : "";
 
-	server->handleModeCommand(clientFd, target, mode, parameter);
+    //this needs to be in a loop that increments through the params (using '-' and '+' as delimiters) and prcessing
+    //each flag as it comes (i, t, k and o)
+    while (int i = 0 < parsed.params.size())
+    {
+        std::string parameter = parsed.params.size() > 2 ? parsed.params[2] : "";
+        server->handleModeCommand(clientFd, target, mode, parameter);
+        i++;
+    }
 }

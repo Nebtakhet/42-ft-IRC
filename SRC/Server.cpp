@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/09 13:22:14 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/10 23:03:01 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -264,21 +264,21 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName, con
     Channel *channel = getChannel(channelName);
     if (!channel) {
         std::cerr << "Channel " << channelName << " does not exist" << std::endl;
-        std::string response = "403 " + channelName + " :No such channel\r\n"; 
+        std::string response = "403 " + channelName + " : No such channel\r\n"; 
         sendToClient(clientFd, response);
         return;
     }
 
     if (!channel->isMember(clientFd)) {
         std::cerr << "Client " << clientFd << " is not in channel " << channelName << std::endl;
-        std::string response = "442 " + channelName + " :You're not on that channel\r\n";
+        std::string response = "442 " + channelName + " : You're not on that channel\r\n";
         sendToClient(clientFd, response);
         return;
     }
 
     channel->removeMember(clientFd);
-    std::cout << "Client " << clientFd << " left channel " << channelName << " :exit with NO params" << std::endl;
-    
+    std::cout << "Client " << clientFd << " left channel " << channelName << std::endl;
+
     std::string response = ":" + getClient(clientFd)->getNickname() + " PART " + channelName + "\r\n";
     sendToClient(clientFd, response);
 
@@ -481,50 +481,4 @@ void Server::sendWelcomeMessage(int clientFd, const Client &client) {
     sendToClient(clientFd, welcomeMessage);
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
-}
-
-void Server::handleTopicCommand(int clientFd, const std::string &channelName, const std::string &topic)
-{
-    Client *client = getClient(clientFd);
-    if (!client)
-    {
-        std::cerr << "Client " << clientFd << " not found" << std::endl;
-        return;
-    }
-
-    Channel *channel = getChannel(channelName);
-    if (!channel)
-    {
-        std::cerr << "Channel " << channelName << " does not exist" << std::endl;
-        sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
-        return;
-    }
-
-    if (!topic.empty())
-    {
-        // Check if the channel has topic protection and if the client is an operator
-        if (channel->isTopicProtected() && !channel->isOperator(clientFd))
-        {
-            std::cerr << "Client " << clientFd << " does not have permission to set the topic for channel " << channelName << std::endl;
-            sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n"); // ERR_CHANOPRIVSNEEDED
-            return;
-        }
-
-        channel->setTopic(topic);
-        std::string topicMessage = ":" + client->getNickname() + " TOPIC " + channelName + " :" + topic + "\r\n";
-
-        for (int memberFd : channel->getMembers())
-            sendToClient(memberFd, topicMessage);
-
-        std::cout << "Client " << clientFd << " (" << client->getNickname() << ") set topic for channel "
-                  << channelName << " to: " << topic << std::endl;
-    }
-    else
-    {
-        std::string currentTopic = channel->getTopic();
-        if (!currentTopic.empty())
-            sendToClient(clientFd, "332 " + channelName + " :" + currentTopic + "\r\n"); // RPL_TOPIC
-        else
-            sendToClient(clientFd, "331 " + channelName + " :No topic is set\r\n"); // RPL_NOTOPIC
-    }
 }
