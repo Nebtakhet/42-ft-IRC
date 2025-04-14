@@ -131,7 +131,8 @@ void Server::handleClient(int clientFd)
 void Server::removeClient(int clientFd)
 {
     close(clientFd);
-    for (size_t i = pollfds.size(); i-- > 0; )
+
+    for (size_t i = pollfds.size(); i-- > 0;)
     {
         if (pollfds[i].fd == clientFd)
         {
@@ -139,21 +140,28 @@ void Server::removeClient(int clientFd)
             break;
         }
     }
+
     clientBuffer.erase(clientFd);
 
-    // Remove client from clients container
     clients.erase(std::remove_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
         return client.getClientFd() == clientFd;
     }), clients.end());
 
-	for (auto &channelPair : channels)
-	{
-		Channel &channel = channelPair.second;
-		channel.removeMember(clientFd);
-		if (channel.getMembers().empty())
-			channels.erase(channelPair.first);
-	}
-	std::cout << "Client " << clientFd << " removed" << std::endl;
+    for (auto it = channels.begin(); it != channels.end();)
+    {
+        Channel &channel = it->second;
+        channel.removeMember(clientFd);
+
+        if (channel.getMembers().empty())
+        {
+            std::cout << "Channel " << channel.getName() << " is now empty and has been removed" << std::endl;
+            it = channels.erase(it);
+        }
+        else
+            ++it;
+    }
+
+    std::cout << "Client " << clientFd << " removed" << std::endl;
 }
 
 /* Function to close the server. It closes all client connections and the server socket. */
@@ -255,6 +263,12 @@ void Server::run()
 /* Function to handle a clean exit. It closes the server and exits with EXIT_SUCCESS. */
 void Server::cleanExit()
 {
+	for (const auto &pollfd : pollfds)
+	{
+		if (pollfd.fd != serverSocket)
+			removeClient(pollfd.fd);
+	}
+		
     closeServer();
     exit(EXIT_SUCCESS);
 }
