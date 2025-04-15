@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/10 23:03:01 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/15 13:01:23 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,8 +100,41 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
     });
 
     if (it != clients.end()) {
-        it->setNickname(nickname);
-        std::cout << "Client " << clientFd << " set nickname to " << nickname << std::endl;
+        std::string oldNickname = it->getNickname();
+        std::string finalNickname = nickname;
+
+        // Ensure the nickname is unique
+        while (std::find_if(clients.begin(), clients.end(), [&finalNickname](const Client &client) {
+                   return client.getNickname() == finalNickname;
+               }) != clients.end()) {
+            finalNickname += "_";
+        }
+
+        // Notify the client about the nickname change
+        if (finalNickname != oldNickname) {
+            // Send the NICK command response to the client
+            std::string response = ":" + oldNickname + " NICK :" + finalNickname + "\r\n";
+            sendToClient(clientFd, response);
+
+            // Notify all other clients in the same channels
+            for (const std::string &channelName : it->getJoinedChannels()) {
+                Channel *channel = getChannel(channelName);
+                if (channel) {
+                    for (int memberFd : channel->getMembers()) {
+                        if (memberFd != clientFd) {
+                            sendToClient(memberFd, response);
+                        }
+                    }
+                }
+            }
+
+            // Update the client's nickname
+            it->setNickname(finalNickname);
+            std::cout << "Client " << clientFd << " changed nickname from " << oldNickname << " to " << finalNickname << std::endl;
+        } else {
+            std::string errorResponse = "433 " + finalNickname + " :Nickname is already in use\r\n"; // ERR_NICKNAMEINUSE
+            sendToClient(clientFd, errorResponse);
+        }
     } else {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
     }
@@ -292,11 +325,9 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName)
     }
 }
 
-void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message)
-{
+void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message) {
     Client *client = getClient(clientFd);
-    if (!client)
-	{
+    if (!client) {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
         return;
     }
@@ -304,11 +335,9 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
     std::string sender = client->getNickname();
 
     // Check if the target is a channel
-    if (target[0] == '#')
-	{
+    if (target[0] == '#') {
         Channel *channel = getChannel(target);
-        if (!channel)
-		{
+        if (!channel) {
             std::cerr << "Channel " << target << " does not exist" << std::endl;
             std::string response = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
             sendToClient(clientFd, response);
@@ -316,8 +345,7 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
         }
 
         // Check if the client is a member of the channel
-        if (!channel->isMember(clientFd))
-		{
+        if (!channel->isMember(clientFd)) {
             std::cerr << "Client " << clientFd << " is not a member of channel " << target << std::endl;
             std::string response = "442 " + target + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
             sendToClient(clientFd, response);
@@ -325,21 +353,16 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
         }
 
         // Send the message to all clients in the channel except the sender
-        for (int memberFd : channel->getMembers())
-		{
-            if (memberFd != clientFd)
-			{
-                std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
+        std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
+        for (int memberFd : channel->getMembers()) {
+            if (memberFd != clientFd) {
                 sendToClient(memberFd, response);
-                std::cout << "Sent message to client " << memberFd << " in channel " << target << std::endl;
             }
         }
-    } else
-	{
+    } else {
         // Target is a user
         Client *targetClient = getClientByNickname(target);
-        if (!targetClient)
-		{
+        if (!targetClient) {
             std::cerr << "User " << target << " does not exist" << std::endl;
             std::string response = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
             sendToClient(clientFd, response);
@@ -385,7 +408,7 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
     std::ostringstream response;
 
     if (target.empty())
-	{
+    {
         // WHO without a target: list all users on the server
         for (const Client &client : clients) {
             response << client.getNickname() << " "
@@ -393,12 +416,12 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
                      << client.getRealname() << "\r\n";
         }
     }
-	else if (target[0] == '#')
-	{
+    else if (target[0] == '#')
+    {
         // WHO for a channel
         Channel *channel = getChannel(target);
         if (!channel)
-		{
+        {
             std::cerr << "Channel " << target << " does not exist" << std::endl;
             std::string errorResponse = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
             sendToClient(clientFd, errorResponse);
@@ -406,22 +429,22 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
         }
 
         for (int memberFd : channel->getMembers())
-		{
+        {
             Client *member = getClient(memberFd);
             if (member)
-			{
+            {
                 response << member->getNickname() << " "
                          << member->getUsername() << " "
                          << member->getRealname() << "\r\n";
             }
         }
     }
-	else
-	{
+    else
+    {
         // WHO for a specific user
         Client *targetClient = getClientByNickname(target);
         if (!targetClient)
-		{
+        {
             std::cerr << "User " << target << " does not exist" << std::endl;
             std::string errorResponse = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
             sendToClient(clientFd, errorResponse);
