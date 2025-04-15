@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/10 23:03:01 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/15 10:40:28 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,8 +100,25 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
     });
 
     if (it != clients.end()) {
-        it->setNickname(nickname);
-        std::cout << "Client " << clientFd << " set nickname to " << nickname << std::endl;
+        std::string finalNickname = nickname;
+
+        // Ensure the nickname is unique
+        while (std::find_if(clients.begin(), clients.end(), [&finalNickname](const Client &client) {
+                   return client.getNickname() == finalNickname;
+               }) != clients.end()) {
+            finalNickname += "_";
+        }
+
+        // If the nickname was modified, notify the client
+        if (finalNickname != nickname) {
+            std::string message = "Your nick already exists in this server, so we modified it to '" + finalNickname +
+                                  "'. If you wish to change your nick, please run /nick NEW_NICK once connected to the server or "
+                                  "/set nick NEW_NICK if you aren’t connected to the server.\r\n";
+            sendToClient(clientFd, message);
+        }
+
+        it->setNickname(finalNickname);
+        std::cout << "Client " << clientFd << " set nickname to " << finalNickname << std::endl;
     } else {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
     }
