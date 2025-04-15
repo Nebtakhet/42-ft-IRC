@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/15 10:49:57 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/15 13:01:23 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -100,6 +100,7 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
     });
 
     if (it != clients.end()) {
+        std::string oldNickname = it->getNickname();
         std::string finalNickname = nickname;
 
         // Ensure the nickname is unique
@@ -109,16 +110,31 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
             finalNickname += "_";
         }
 
-        // If the nickname was modified, notify the client
-        if (finalNickname != nickname) {
-            std::string message = "Your nick already exists in this server, so we modified it to '" + finalNickname +
-                                  "'. If you wish to change your nick, please run /nick NEW_NICK once connected to the server or "
-                                  "/set nick NEW_NICK if you aren’t connected to the server.\r\n";
-            sendToClient(clientFd, message);
-        }
+        // Notify the client about the nickname change
+        if (finalNickname != oldNickname) {
+            // Send the NICK command response to the client
+            std::string response = ":" + oldNickname + " NICK :" + finalNickname + "\r\n";
+            sendToClient(clientFd, response);
 
-        it->setNickname(finalNickname);
-        std::cout << "Client " << clientFd << " set nickname to " << finalNickname << std::endl;
+            // Notify all other clients in the same channels
+            for (const std::string &channelName : it->getJoinedChannels()) {
+                Channel *channel = getChannel(channelName);
+                if (channel) {
+                    for (int memberFd : channel->getMembers()) {
+                        if (memberFd != clientFd) {
+                            sendToClient(memberFd, response);
+                        }
+                    }
+                }
+            }
+
+            // Update the client's nickname
+            it->setNickname(finalNickname);
+            std::cout << "Client " << clientFd << " changed nickname from " << oldNickname << " to " << finalNickname << std::endl;
+        } else {
+            std::string errorResponse = "433 " + finalNickname + " :Nickname is already in use\r\n"; // ERR_NICKNAMEINUSE
+            sendToClient(clientFd, errorResponse);
+        }
     } else {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
     }
