@@ -28,7 +28,7 @@ class Channel
 		std::string		topic;
 		bool			topicProtected = false;
 		std::string		key;
-		int				userLimit = 0;
+		int				userLimit = 5;
 		std::set<int>	invitedUsers;
 
 	public:
