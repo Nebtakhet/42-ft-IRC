@@ -185,6 +185,7 @@ void topic(Server *server, int clientFd, const cmd_syntax &parsed)
 // With my small brain i can only think of how to handle one mode at a time
 void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
+    std::cout << "HERE\n";
 	if (parsed.params.size() < 2) {
 		std::cerr << "Not enough parameters for MODE command" << std::endl;
 		return;
@@ -192,10 +193,7 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
 
 	std::string channel = parsed.params[0];
 	std::string mode = parsed.params[1];
-    if (!parse.params[2])
-        parse.params[2] = "";
-    else
-	    std::string arg = parsed.params[2];
+	std::string arg = parsed.params[2];
 
     size_t i = 1; 
     while (i < parsed.params.size()) 
@@ -218,7 +216,7 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
             }
         }
 
-        server->handleModeCommand(clientFd, channel, std::string flag, parameter, arg);
+        server->handleModeCommand(clientFd, channel, flag, parameter, arg);
     }
 }
 

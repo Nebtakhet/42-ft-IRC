@@ -202,7 +202,7 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
 }
 
 
-void Server::handleModeCommand(int clientFd, const std::string &channelName, std::string flag, const std::string &parameter, const std::string &arg)
+void Server::handleModeCommand(int clientFd, const std::string &channelName, char flag, const std::string &parameter, const std::string &arg)
 {
     Client *client = getClient(clientFd);
     if (!client) 
@@ -224,37 +224,37 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, std
         return;
     }
 
-    if (client->isOperator(clientFd))
+    if (client->isOperator())
     {
-        if (parameter == 'i')
+        if (parameter == "i")
         {
             if (flag == '+')
                 channel->setInviteOnly(true);
             else if (flag == '-')
                 channel->setInviteOnly(false);
         }
-        else if (parameter == 't')
+        else if (parameter == "t")
         {
             if (flag == '+')
                 channel->setTopicProtected(true);
             if (flag == '-')
                 channel->setTopicProtected(false);
         }
-        else if (parameter == 'k')
+        else if (parameter == "k")
         {
             if (flag == '+')
                 channel->setKey(parameter);
             if (flag == '-')
                 channel->clearKey();
         }
-        else if (parameter == 'l')
+        else if (parameter == "l")
         {
             if (flag == '+')
-                channel->setUserLimit(arg);
+                channel->setUserLimit(std::stoi(arg));
             if (flag == '-')
                 channel->setUserLimit(1000);
         }
-        else if (parameter == 'o')
+        else if (parameter == "o")
         {
             Client *targetClient = getClientByNickname(parameter);
             if (!targetClient)
@@ -263,14 +263,11 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, std
                 return;
             }
             int targetFd = targetClient->getClientFd();
-            if (parameter == 'o')
-            {
-                if(flag == '+')
-                    channel->addOperator(targetFd);
-                if (flag == '-')
-                    channel->removeOperator(targetFd);
-            }
-
+        
+            if(flag == '+')
+                channel->addOperator(targetFd);
+            if (flag == '-')
+                channel->removeOperator(targetFd);
         }
         else
         {
@@ -282,7 +279,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, std
         std::cerr << "no operator privillages\r\n";
         
 
-    std::string response = ":" + client->getNickname() + " MODE " + channelName + " " + mode + " " + parameter + "\r\n";
+    std::string response = ":" + client->getNickname() + " MODE " + channelName + " " + flag + " " + parameter + "\r\n";
     for (int memberFd : channel->getMembers())
         sendToClient(memberFd, response);
 

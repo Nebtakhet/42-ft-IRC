@@ -68,7 +68,7 @@ class Server
 		void handleKickCommand(int clientFd, const std::string &channel, const std::string &target, const std::string &reason);
 		void handleInviteCommand(int clientFd, const std::string &channel, const std::string &target);
 		void handleTopicCommand(int clientFd, const std::string &channel, const std::string &topic);		
-		void handleModeCommand(int clientFd, const std::string &channelName, std::string flag, const std::string &parameter, const std::string &arg);
+		void handleModeCommand(int clientFd, const std::string &channelName, char flag, const std::string &parameter, const std::string &arg);
 		
 		void sendWelcomeMessage(int clientFd, const Client &client);
 
