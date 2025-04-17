@@ -182,6 +182,7 @@ void topic(Server *server, int clientFd, const cmd_syntax &parsed)
 	server->handleTopicCommand(clientFd, channel, topic);
 }
 
+// With my small brain i can only think of how to handle one mode at a time
 void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
 	if (parsed.params.size() < 2) {
@@ -189,15 +190,19 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
 		return;
 	}
 
-	std::string target = parsed.params[0];
+	std::string channel = parsed.params[0];
 	std::string mode = parsed.params[1];
+	std::string arg = parsed.params[2];
 
-    size_t i = 1; // Start from the second parameter (index 1) since the first is the target
+    size_t i = 1; 
     while (i < parsed.params.size()) 
     {
-        char flag = mode[i - 1]; // Get the current mode flag (e.g., '+', '-', 'o', 'k', etc.)
+        char flag = mode[i - 1]; 
         if (flag == '+' || flag == '-') {
-            i++; // Move to the next parameter
+            i++; 
+        /*else
+            std::cerr << "incorrect flag, must use '+' or '-'\n";
+            return;*/
             continue;
         }
 
@@ -210,6 +215,6 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
             }
         }
 
-        server->handleModeCommand(clientFd, target, std::string(1, flag), parameter);
+        server->handleModeCommand(clientFd, channel, std::string(1, flag), parameter, arg);
     }
 }

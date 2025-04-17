@@ -202,7 +202,7 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
 }
 
 
-void Server::handleModeCommand(int clientFd, const std::string &target, const std::string &mode, const std::string &parameter)
+void Server::handleModeCommand(int clientFd, const std::string &channelName, char flag, const std::string &parameter, const std::string &arg)
 {
     Client *client = getClient(clientFd);
     if (!client) 
@@ -211,62 +211,84 @@ void Server::handleModeCommand(int clientFd, const std::string &target, const st
         return;
     }
 
-    Channel *channel = getChannel(target);
+    Channel *channel = getChannel(channelName);
     if (!channel)
     {
-        sendToClient(clientFd, "403 " + target + " :No such channel\r\n");
+        sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
         return;
     }
 
     if (!channel->isOperator(clientFd))
     {
-        sendToClient(clientFd, "482 " + target + " :You're not channel operator\r\n");
+        sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n");
         return;
     }
 
-    if (mode == "+i")
-        channel->setInviteOnly(true);
-    else if (mode == "-i")
-        channel->setInviteOnly(false);
-    else if (mode == "+t")
-        channel->setTopicProtected(true);
-    else if (mode == "-t")
-        channel->setTopicProtected(false);
-    else if (mode == "+k")
-        channel->setKey(parameter);
-    else if (mode == "-k")
-        channel->clearKey();
-    else if (mode == "+l")
-        channel->setUserLimit(std::stoi(parameter));
-    else if (mode == "-l")
-        channel->clearUserLimit();
-    else if (mode == "+o" || mode == "-o")
+    if (client->isOperator(clientFd))
     {
-        Client *targetClient = getClientByNickname(parameter);
-        if (!targetClient)
+        if (parameter == 'i')
         {
-            sendToClient(clientFd, "401 " + parameter + " :No such nick/channel\r\n");
+            if (flag == '+')
+                channel->setInviteOnly(true);
+            else if (flag == '-')
+                channel->setInviteOnly(false);
+        }
+        else if (parameter == 't')
+        {
+            if (flag == '+')
+                channel->setTopicProtected(true);
+            if (flag == '-')
+                channel->setTopicProtected(false);
+        }
+        else if (parameter == 'k')
+        {
+            if (flag == '+')
+                channel->setKey(parameter);
+            if (flag == '-')
+                channel->clearKey();
+        }
+        else if (parameter == 'l')
+        {
+            if (flag == '+')
+                channel->setUserLimit(arg);
+            if (flag == '-')
+                channel->setUserLimit(1000);
+        }
+        else if (parameter == 'o')
+        {
+            Client *targetClient = getClientByNickname(parameter);
+            if (!targetClient)
+            {
+                sendToClient(clientFd, "401 " + parameter + " :No such nick/channel\r\n");
+                return;
+            }
+            int targetFd = targetClient->getClientFd();
+            if (parameter == 'o')
+            {
+                if(flag == '+')
+                    channel->addOperator(targetFd);
+                if (flag == '-')
+                    channel->removeOperator(targetFd);
+            }
+
+        }
+        else
+        {
+            sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
             return;
         }
-
-        int targetFd = targetClient->getClientFd();
-        if (mode == "+o")
-            channel->addOperator(targetFd);
-        else
-            channel->removeOperator(targetFd);
     }
     else
-    {
-        sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
-        return;
-    }
+        std::cerr << "no operator privillages\r\n";
+        
 
-    std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + " " + parameter + "\r\n";
+    std::string response = ":" + client->getNickname() + " MODE " + channelName + " " + mode + " " + parameter + "\r\n";
     for (int memberFd : channel->getMembers())
         sendToClient(memberFd, response);
 
-    std::cout << "Client " << clientFd << " set mode " << mode << " for channel " << target << std::endl;
-}    
+    std::cout << "Client " << clientFd << " set mode " << parameter << " for channel " << channelName << std::endl;
+    }   
+
 	
 
 
