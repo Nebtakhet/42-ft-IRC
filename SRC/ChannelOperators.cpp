@@ -202,7 +202,7 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
 }
 
 
-void Server::handleModeCommand(int clientFd, const std::string &channelName, char flag, const std::string &parameter, const std::string &arg)
+void Server::handleModeCommand(int clientFd, const std::string &channelName, std::string flag, const std::string &parameter, const std::string &arg)
 {
     Client *client = getClient(clientFd);
     if (!client) 

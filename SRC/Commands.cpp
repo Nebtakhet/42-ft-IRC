@@ -192,7 +192,10 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
 
 	std::string channel = parsed.params[0];
 	std::string mode = parsed.params[1];
-	std::string arg = parsed.params[2];
+    if (!parse.params[2])
+        parse.params[2] = "";
+    else
+	    std::string arg = parsed.params[2];
 
     size_t i = 1; 
     while (i < parsed.params.size()) 
@@ -207,7 +210,7 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
         }
 
         std::string parameter;
-        if (flag == 'o' || flag == 'k' || flag == 'l'|| flag == 'i'|| flag == 't')
+        if (mode == "o" || mode == "k" || mode == "l"|| mode == "i"|| mode == "t")
         {
             if (i + 1 < parsed.params.size()) {
                 parameter = parsed.params[i];
@@ -215,6 +218,8 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
             }
         }
 
-        server->handleModeCommand(clientFd, channel, std::string(1, flag), parameter, arg);
+        server->handleModeCommand(clientFd, channel, std::string flag, parameter, arg);
     }
 }
+
+
