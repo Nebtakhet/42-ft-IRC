@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/15 13:01:23 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/18 23:23:48 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,15 +15,30 @@
 #include "Commands.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
+#include <unistd.h> // For gethostname
+#include <cstring>  // For strerror
 
 Server *serverInstance = nullptr;
 
 /* Constructor calling setupSocket */
 Server::Server(int port, const std::string &password) 
-	: port(port), password(password), serverSocket(-1), running(false)
+    : port(port), password(password), serverSocket(-1), running(false)
 {
-	std::cout << "Initializing server on port " << port << " with password " << password << std::endl;
-	setupSocket();
+    std::cout << "Initializing server on port " << port << " with password " << password << std::endl;
+
+    char buffer[256];
+    if (gethostname(buffer, sizeof(buffer)) == 0)
+	{
+        hostname = buffer;
+        std::cout << "Server hostname: " << hostname << std::endl;
+    }
+	else
+	{
+        std::cerr << "Failed to retrieve hostname: " << strerror(errno) << std::endl;
+        hostname = "localhost"; // Fallback to localhost
+    }
+
+    setupSocket();
 }
 
 /* Destructor calling closeServer */
@@ -113,7 +128,8 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
         // Notify the client about the nickname change
         if (finalNickname != oldNickname) {
             // Send the NICK command response to the client
-            std::string response = ":" + oldNickname + " NICK :" + finalNickname + "\r\n";
+            std::string response = ":" + oldNickname + "!" + it->getUsername() + 
+                "@" + hostname + " NICK :" + finalNickname + "\r\n"; // Include hostname
             sendToClient(clientFd, response);
 
             // Notify all other clients in the same channels
@@ -233,7 +249,8 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName)
     channel->addMember(clientFd);
     std::cout << "Added client " << clientFd << " to channel " << channelName << std::endl;
 
-    std::string response = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
+    std::string response = ":" + client->getNickname() + "!" + 
+        client->getUsername() + "@" + hostname + " JOIN " + channelName + "\r\n"; // Include hostname
     sendToClient(clientFd, response);
 
     for (int memberFd : channel->getMembers())
@@ -296,23 +313,24 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName)
     Channel *channel = getChannel(channelName);
     if (!channel) {
         std::cerr << "Channel " << channelName << " does not exist" << std::endl;
-        std::string response = "403 " + channelName + " : No such channel\r\n"; 
+        std::string response = "403 " + channelName + " :No such channel\r\n"; 
         sendToClient(clientFd, response);
         return;
     }
 
     if (!channel->isMember(clientFd)) {
         std::cerr << "Client " << clientFd << " is not in channel " << channelName << std::endl;
-        std::string response = "442 " + channelName + " : You're not on that channel\r\n";
+        std::string response = "442 " + channelName + " :You're not on that channel\r\n";
         sendToClient(clientFd, response);
         return;
     }
 
     channel->removeMember(clientFd);
-	getClient(clientFd)->leaveChannel(channelName);
+    getClient(clientFd)->leaveChannel(channelName);
     std::cout << "Client " << clientFd << " left channel " << channelName << std::endl;
 
-    std::string response = ":" + getClient(clientFd)->getNickname() + " PART " + channelName + "\r\n";
+    std::string response = ":" + getClient(clientFd)->getNickname() + "!" + 
+        getClient(clientFd)->getUsername() + "@" + hostname + " PART " + channelName + "\r\n"; // Include hostname
     sendToClient(clientFd, response);
 
     for (int memberFd : channel->getMembers()) {
@@ -371,7 +389,8 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
 
         // Send the message to the target user
         int targetFd = targetClient->getClientFd();
-        std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
+        std::string response = ":" + sender + "!" + client->getUsername() + 
+            "@" + hostname + " PRIVMSG " + target + " :" + message + "\r\n"; // Include hostname
         sendToClient(targetFd, response);
     }
 }
@@ -433,9 +452,8 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
             Client *member = getClient(memberFd);
             if (member)
             {
-                response << member->getNickname() << " "
-                         << member->getUsername() << " "
-                         << member->getRealname() << "\r\n";
+                response << member->getNickname() << " " << member->getUsername() << 
+                    "@" << hostname << " " << member->getRealname() << "\r\n"; // Include hostname
             }
         }
     }
@@ -475,7 +493,8 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
         Channel &channel = channelPair.second;
         if (channel.isMember(clientFd))
 		{
-            std::string response = ":" + nickname + " QUIT :" + quitMessage + "\r\n";
+            std::string response = ":" + nickname + "!" + client->getUsername() + 
+                "@" + hostname + " QUIT :" + quitMessage + "\r\n"; // Include hostname
             for (int memberFd : channel.getMembers())
 			{
                 if (memberFd != clientFd)
@@ -500,7 +519,9 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
 }
 
 void Server::sendWelcomeMessage(int clientFd, const Client &client) {
-    std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\r\n";
+    std::string welcomeMessage = "001 " + client.getNickname() + 
+        " :Welcome to the Internet Relay Network " + client.getNickname() + 
+        "!" + client.getUsername() + "@" + hostname + "\r\n"; // Use dynamic hostname
     sendToClient(clientFd, welcomeMessage);
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
