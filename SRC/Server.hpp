@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/18 16:40:06 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/22 10:21:05 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,8 @@ class Server
 		std::unordered_map<int, std::string> clientBuffer;
 		std::vector<Client> clients;
 		std::string hostname;
+		
+		void retrieveHostname();
 };
 
 extern Server *serverInstance;

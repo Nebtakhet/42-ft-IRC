@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/18 23:23:48 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/22 10:37:44 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +15,7 @@
 #include "Commands.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
-#include <unistd.h> // For gethostname
-#include <cstring>  // For strerror
+
 
 Server *serverInstance = nullptr;
 
@@ -26,18 +25,7 @@ Server::Server(int port, const std::string &password)
 {
     std::cout << "Initializing server on port " << port << " with password " << password << std::endl;
 
-    char buffer[256];
-    if (gethostname(buffer, sizeof(buffer)) == 0)
-	{
-        hostname = buffer;
-        std::cout << "Server hostname: " << hostname << std::endl;
-    }
-	else
-	{
-        std::cerr << "Failed to retrieve hostname: " << strerror(errno) << std::endl;
-        hostname = "localhost"; // Fallback to localhost
-    }
-
+	retrieveHostname();
     setupSocket();
 }
 
@@ -45,6 +33,26 @@ Server::Server(int port, const std::string &password)
 Server::~Server()
 {
 	closeServer();
+}
+
+void	Server::retrieveHostname()
+{
+    try 
+	{
+        std::vector<char> buffer(256);
+        if (gethostname(buffer.data(), buffer.size()) == 0)
+		{
+            hostname = std::string(buffer.data());
+            std::cout << "Server hostname: " << hostname << std::endl;
+        } 
+		else
+            throw std::runtime_error("Failed to retrieve hostname: " + std::string(strerror(errno)));
+    }
+	catch (const std::exception &e)
+	{
+        std::cerr << e.what() << std::endl;
+        hostname = "localhost";
+    }
 }
 
 void Server::handleIncomingMessage(const std::string &message, int clientFd) {
@@ -205,18 +213,26 @@ void Server::handleCapEnd(int clientFd) {
 
 void Server::handleJoinCommand(int clientFd, const std::string &channelName)
 {
-    if (channelName.empty())
-    {
-        std::cerr << "No channel provided for JOIN command" << std::endl;
-        std::string response = "461 JOIN :Not enough parameters\r\n";
-        sendToClient(clientFd, response);
-        return;
-    }
-
     Client *client = getClient(clientFd);
     if (!client)
     {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    if (channelName.empty())
+    {
+        std::cerr << "No channel provided for JOIN command from client " << clientFd << std::endl;
+        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        sendToClient(clientFd, response);
+        return;
+    }
+
+    if (client->isCapNegotiating())
+    {
+        std::cerr << "Client " << clientFd << " attempted to JOIN during CAP negotiation" << std::endl;
+        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n"; // ERR_NOTREGISTERED
+        sendToClient(clientFd, response);
         return;
     }
 
@@ -234,7 +250,7 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName)
         if (channel->isInviteOnly() && !channel->isInvited(clientFd))
         {
             std::cerr << "Client " << clientFd << " attempted to join invite-only channel " << channelName << " without an invitation" << std::endl;
-            std::string response = "473 " + channelName + " :Cannot join channel (+i)\r\n"; 
+            std::string response = "473 " + channelName + " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
             sendToClient(clientFd, response);
             return;
         }
@@ -247,10 +263,11 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName)
     }
 
     channel->addMember(clientFd);
+    client->joinChannel(channelName);
     std::cout << "Added client " << clientFd << " to channel " << channelName << std::endl;
 
     std::string response = ":" + client->getNickname() + "!" + 
-        client->getUsername() + "@" + hostname + " JOIN " + channelName + "\r\n"; // Include hostname
+        client->getUsername() + "@" + hostname + " JOIN " + channelName + "\r\n";
     sendToClient(clientFd, response);
 
     for (int memberFd : channel->getMembers())
