@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/22 10:37:44 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/22 11:01:49 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -214,27 +214,6 @@ void Server::handleCapEnd(int clientFd) {
 void Server::handleJoinCommand(int clientFd, const std::string &channelName)
 {
     Client *client = getClient(clientFd);
-    if (!client)
-    {
-        std::cerr << "Client " << clientFd << " not found" << std::endl;
-        return;
-    }
-
-    if (channelName.empty())
-    {
-        std::cerr << "No channel provided for JOIN command from client " << clientFd << std::endl;
-        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
-        sendToClient(clientFd, response);
-        return;
-    }
-
-    if (client->isCapNegotiating())
-    {
-        std::cerr << "Client " << clientFd << " attempted to JOIN during CAP negotiation" << std::endl;
-        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n"; // ERR_NOTREGISTERED
-        sendToClient(clientFd, response);
-        return;
-    }
 
     Channel *channel = getChannel(channelName);
     if (!channel)

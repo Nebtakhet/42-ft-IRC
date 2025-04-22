@@ -27,11 +27,16 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
             return;
         }
 
-        // Acknowledge requested capabilities
         std::string response = "CAP * ACK :" + parsed.message + "\r\n";
         server->sendToClient(clientFd, response);
     } else if (subcommand == "END") {
-        // Do nothing for CAP END, just proceed with registration
+		Client *client = server->getClient(clientFd);
+		if (!client) {
+			std::cerr << "Client " << clientFd << " not found" << std::endl;
+			return;
+		}
+		client->setCapNegotiation(false);
+
         std::cout << "CAP negotiation ended for client " << clientFd << std::endl;
     } else {
         std::cerr << "Unknown CAP subcommand: " << subcommand << std::endl;
@@ -41,8 +46,27 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
 }
 
 void join(Server *server, int clientFd, const cmd_syntax &parsed) {
-    if (parsed.params.empty()) {
-        std::cerr << "No channel provided for JOIN command" << std::endl;
+    Client *client = server->getClient(clientFd);
+    if (!client) {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    if (client->isCapNegotiating()) {
+        std::cerr << "Client " << clientFd << " attempted to JOIN during CAP negotiation" << std::endl;
+
+        if (parsed.params.empty() || parsed.params[0].empty()) {
+            std::cout << "Ignoring empty JOIN command from client " << clientFd << " during CAP negotiation" << std::endl;
+            return;
+        }
+
+        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n"; // ERR_NOTREGISTERED
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    if (parsed.params.empty() || parsed.params[0].empty()) {
+        std::cerr << "No channel provided for JOIN command from client " << clientFd << std::endl;
         std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
         server->sendToClient(clientFd, response);
         return;
