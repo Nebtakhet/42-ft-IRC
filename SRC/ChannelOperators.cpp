@@ -228,6 +228,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
     {
         if (parameter == "i")
         {
+            std::cout<<"invite param\n";
             if (flag == '+')
                 channel->setInviteOnly(true);
             else if (flag == '-')
@@ -235,6 +236,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         }
         else if (parameter == "t")
         {
+            std::cout<<"topic param\n";
             if (flag == '+')
                 channel->setTopicProtected(true);
             if (flag == '-')
@@ -242,6 +244,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         }
         else if (parameter == "k")
         {
+            std::cout<<"key param\n";
             if (flag == '+')
                 channel->setKey(parameter);
             if (flag == '-')
@@ -249,6 +252,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         }
         else if (parameter == "l")
         {
+            std::cout<<"limit param\n";
             if (flag == '+')
                 channel->setUserLimit(std::stoi(arg));
             if (flag == '-')
@@ -256,6 +260,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         }
         else if (parameter == "o")
         {
+            std::cout<<"operator param\n";
             Client *targetClient = getClientByNickname(parameter);
             if (!targetClient)
             {

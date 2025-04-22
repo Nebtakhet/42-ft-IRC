@@ -185,44 +185,47 @@ void topic(Server *server, int clientFd, const cmd_syntax &parsed)
 // With my small brain i can only think of how to handle one mode at a time
 void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
-	
-	if (parsed.params.size() < 2) {
-		std::cerr << "Not enough parameters for MODE command" << std::endl;
-		return;
-	}
+    if (parsed.params.size() < 2) {
+        std::cerr << "Not enough parameters for MODE command" << std::endl;
+        std::string response = "461 MODE :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        server->sendToClient(clientFd, response);
+        return;
+    }
 
-	std::string channel = parsed.params[0];
-	std::string mode = parsed.params[1];
-	std::string arg;
-	if (parsed.params[2].empty())
-		std::string arg = parsed.params[2];
-	else 
-		std::string arg = "";
+    std::string channel = parsed.params[0];
+    std::string mode = parsed.params[1];
+    size_t i = 0; // Start iterating through the mode string
+    size_t paramIndex = 2; // Start looking for parameters from the third element in parsed.params
 
-	std::cout << "\n\n\nHERE\n\n\n";
-    size_t i = 1; 
-    while (i < parsed.params.size()) 
-    {
-        char flag = mode[i - 1]; 
+    while (i < mode.size()) {
+        char flag = mode[i]; // Get the current mode flag (+ or -)
         if (flag == '+' || flag == '-') {
-            i++; 
-        /*else
-            std::cerr << "incorrect flag, must use '+' or '-'\n";
-            return;*/
-            continue;
-        }
+            i++; // Move to the next character in the mode string
+            while (i < mode.size() && (mode[i] == 'o' || mode[i] == 'k' || mode[i] == 'l' || mode[i] == 'i' || mode[i] == 't')) {
+                char modeChar = mode[i]; // Get the specific mode character (e.g., 'o', 'k', etc.)
+                std::string parameter;
 
-        std::string parameter;
-        if (mode == "o" || mode == "k" || mode == "l"|| mode == "i"|| mode == "t")
-        {
-            if (i + 1 < parsed.params.size()) {
-                parameter = parsed.params[i];
-                i++; // Move to the next parameter
+                // Check if the mode requires a parameter
+                if ((modeChar == 'o' || modeChar == 'k' || modeChar == 'l') && paramIndex < parsed.params.size()) {
+                    parameter = parsed.params[paramIndex];
+                    paramIndex++; // Move to the next parameter
+                } else if (modeChar == 'o' || modeChar == 'k' || modeChar == 'l') {
+                    // If a parameter is required but not provided
+                    std::cerr << "Not enough parameters for MODE command" << std::endl;
+                    std::string response = "461 MODE :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+                    server->sendToClient(clientFd, response);
+                    return;
+                }
+
+                // Call handleModeCommand with the parsed flag, mode character, and parameter
+                server->handleModeCommand(clientFd, channel, flag, std::string(1, modeChar), parameter);
+                i++; // Move to the next mode character
             }
+        } else {
+            std::cerr << "Invalid mode flag, must use '+' or '-'" << std::endl;
+            std::string response = "501 MODE :Unknown MODE flag\r\n"; // ERR_UMODEUNKNOWNFLAG
+            server->sendToClient(clientFd, response);
+            return;
         }
-
-        server->handleModeCommand(clientFd, channel, flag, parameter, arg);
     }
 }
-
-
