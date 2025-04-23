@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/08 18:02:50 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/08 19:53:06 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/23 19:00:02 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ class Channel
 		const std::string	&getName() const { return name; }
 		const std::string	&getTopic() const { return topic; }
 		bool				isInviteOnly() const { return inviteOnly; }
-		bool				isTopicProtected() const { return !topic.empty() && topicProtected; }
+		bool				isTopicProtected() const { return topicProtected; }
 		int					getUserLimit() const { return userLimit; }
 
 		void				addMember(int clientFd) { members.insert(clientFd); }

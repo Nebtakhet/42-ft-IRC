@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/15 00:19:15 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/23 18:53:48 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -162,40 +162,39 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
 {
     Client *client = getClient(clientFd);
     if (!client)
-	{
+    {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
         return;
     }
 
     Channel *channel = getChannel(channelName);
     if (!channel)
-	{
+    {
         std::cerr << "Channel " << channelName << " does not exist" << std::endl;
         sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
         return;
     }
 
-    if (!topic.empty())
-	{
-        if (channel->isTopicProtected() && !channel->isOperator(clientFd))
-		{
-            std::cerr << "Client " << clientFd << " does not have permission to set the topic for channel " << channelName << std::endl;
-            sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n");
-            return;
-        }
+    if (channel->isTopicProtected() && !channel->isOperator(clientFd))
+    {
+        std::cerr << "Client " << clientFd << " does not have permission to set or view the topic for channel " << channelName << std::endl;
+        sendToClient(clientFd, "482 " + channelName + " :You're not channel operator\r\n");
+        return;
+    }
 
+    if (!topic.empty())
+    {
         channel->setTopic(topic);
         std::string topicMessage = ":" + client->getNickname() + " TOPIC " + channelName + " :" + topic + "\r\n";
 
         for (int memberFd : channel->getMembers())
             sendToClient(memberFd, topicMessage);
 
-
-        std::cout << "Client " << clientFd << " (" << client->getNickname() << ") set topic for channel " 
+        std::cout << "Client " << clientFd << " (" << client->getNickname() << ") set topic for channel "
                   << channelName << " to: " << topic << std::endl;
     }
-	else
-	{
+    else
+    {
         std::string currentTopic = channel->getTopic();
         if (!currentTopic.empty())
             sendToClient(clientFd, "332 " + channelName + " :" + currentTopic + "\r\n");
