@@ -477,8 +477,22 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
 }
 
 void Server::sendWelcomeMessage(int clientFd, const Client &client) {
-    std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\r\n";
-    sendToClient(clientFd, welcomeMessage);
+    std::string asciiArt = R"(
+    
+██╗  ██╗ ██████╗ ██╗      █████╗    ██╗██████╗  ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
+██║  ██║██╔═══██╗██║     ██╔══██╗   ██║██╔══██╗██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
+███████║██║   ██║██║     ███████║   ██║██████╔╝██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
+██╔══██║██║   ██║██║     ██╔══██║   ██║██╔══██╗██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
+██║  ██║╚██████╔╝███████╗██║  ██║   ██║██║  ██║╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝╚═╝  ╚═╝ ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
+Available commands: *****ADD A COMMAND LIST AS /HELP WOULD DO******
+    )";
+    
+    std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\n\n";
+
+    
+            sendToClient(clientFd, welcomeMessage + asciiArt + "\r\n");
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
 }
+
