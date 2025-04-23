@@ -31,6 +31,7 @@
 # include <algorithm>
 # include "Client.hpp"
 # include "Channel.hpp"
+# include "Parsing.hpp"
 
 class Server
 {
@@ -56,7 +57,7 @@ class Server
 		void handleCapEnd(int clientFd);
 		void sendToClient(int clientFd, const std::string &message);
 		void handleJoinCommand(int clientFd, const std::string &channel);
-		void handlePartCommand(int clientFd, const std::string &channel);
+		void handlePartCommand(int clientFd, const std::string &channel, const cmd_syntax &parsed);
 		void handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message);
 		void handleHelpCommand(int clientFd);
 		void handleWhoCommand(int clientFd, const std::string &target);
@@ -67,8 +68,7 @@ class Server
 		void handleKickCommand(int clientFd, const std::string &channel, const std::string &target, const std::string &reason);
 		void handleInviteCommand(int clientFd, const std::string &channel, const std::string &target);
 		void handleTopicCommand(int clientFd, const std::string &channel, const std::string &topic);		
-		void handleModeCommand(int clientFd, const std::string &channel, const std::string &mode, const std::string &parameter);
-		
+		void handleModeCommand(int clientFd, const std::string &channelName, char currentFlag, char modeChar, const std::string &parameter);		
 		void sendWelcomeMessage(int clientFd, const Client &client);
 
 		Channel	*getChannel(const std::string &channelName);

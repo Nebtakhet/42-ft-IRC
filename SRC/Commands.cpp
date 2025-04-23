@@ -120,7 +120,7 @@ void part(Server *server, int clientFd, const cmd_syntax &parsed) {
     }
 
     std::string channel = parsed.params[0];
-    server->handlePartCommand(clientFd, channel);
+    server->handlePartCommand(clientFd, channel, parsed);
 }
 
 void privmsg(Server *server, int clientFd, const cmd_syntax &parsed) {
@@ -252,16 +252,51 @@ void topic(Server *server, int clientFd, const cmd_syntax &parsed)
 	server->handleTopicCommand(clientFd, channel, topic);
 }
 
+// With my small brain i can only think of how to handle one mode at a time
 void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
-	if (parsed.params.size() < 2) {
-		std::cerr << "Not enough parameters for MODE command" << std::endl;
-		return;
-	}
+    if (parsed.params.size() < 2) 
+    {
+        std::cerr << "Not enough parameters for MODE command" << std::endl;
+        std::string response = "461 MODE :Not enough parameters\r\n"; 
+        server->sendToClient(clientFd, response);
+        return;
+    }
 
-	std::string target = parsed.params[0];
-	std::string mode = parsed.params[1];
-	std::string parameter = parsed.params.size() > 2 ? parsed.params[2] : "";
+    std::string channelName = parsed.params[0];
+    std::string modeString = parsed.params[1];
+    size_t paramIndex = 2;
+    char currentFlag = '\0';
 
-	server->handleModeCommand(clientFd, target, mode, parameter);
+    for (char modeChar : modeString) 
+    {
+        if (modeChar == '+' || modeChar == '-') 
+        {
+            currentFlag = modeChar;
+        } 
+        else 
+        {
+            std::string parameter;
+
+            if ((modeChar == 'k' || modeChar == 'o' || modeChar == 'l') && paramIndex < parsed.params.size()) 
+            {
+                parameter = parsed.params[paramIndex];
+                paramIndex++;
+            } 
+            else if (modeChar == 'k' || modeChar == 'o' || modeChar == 'l') 
+            {
+                std::cerr << "Not enough parameters for MODE command" << std::endl;
+                std::string response = "461 MODE :Not enough parameters\r\n"; 
+                server->sendToClient(clientFd, response);
+                return;
+            }
+
+            server->handleModeCommand(clientFd, channelName, currentFlag, modeChar, parameter);
+        }
+    }
+
+    if (paramIndex < parsed.params.size()) 
+    {
+        std::cerr << "Extra parameters provided for MODE command" << std::endl;
+    }
 }
