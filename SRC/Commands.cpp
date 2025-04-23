@@ -27,11 +27,16 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
             return;
         }
 
-        // Acknowledge requested capabilities
         std::string response = "CAP * ACK :" + parsed.message + "\r\n";
         server->sendToClient(clientFd, response);
     } else if (subcommand == "END") {
-        // Do nothing for CAP END, just proceed with registration
+		Client *client = server->getClient(clientFd);
+		if (!client) {
+			std::cerr << "Client " << clientFd << " not found" << std::endl;
+			return;
+		}
+		client->setCapNegotiation(false);
+
         std::cout << "CAP negotiation ended for client " << clientFd << std::endl;
     } else {
         std::cerr << "Unknown CAP subcommand: " << subcommand << std::endl;
@@ -41,8 +46,27 @@ void cap(Server *server, int clientFd, const cmd_syntax &parsed) {
 }
 
 void join(Server *server, int clientFd, const cmd_syntax &parsed) {
-    if (parsed.params.empty()) {
-        std::cerr << "No channel provided for JOIN command" << std::endl;
+    Client *client = server->getClient(clientFd);
+    if (!client) {
+        std::cerr << "Client " << clientFd << " not found" << std::endl;
+        return;
+    }
+
+    if (client->isCapNegotiating()) {
+        std::cerr << "Client " << clientFd << " attempted to JOIN during CAP negotiation" << std::endl;
+
+        if (parsed.params.empty() || parsed.params[0].empty()) {
+            std::cout << "Ignoring empty JOIN command from client " << clientFd << " during CAP negotiation" << std::endl;
+            return;
+        }
+
+        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n"; // ERR_NOTREGISTERED
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    if (parsed.params.empty() || parsed.params[0].empty()) {
+        std::cerr << "No channel provided for JOIN command from client " << clientFd << std::endl;
         std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
         server->sendToClient(clientFd, response);
         return;
@@ -158,15 +182,61 @@ void kick(Server *server, int clientFd, const cmd_syntax &parsed)
 
 void invite(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
-	if (parsed.params.size() < 2) {
-		std::cerr << "Not enough parameters for INVITE command" << std::endl;
-		return;
-	}
+    if (parsed.params.size() < 2) {
+        std::cerr << "Not enough parameters for INVITE command" << std::endl;
+        std::string response = "461 INVITE :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        server->sendToClient(clientFd, response);
+        return;
+    }
 
-	std::string channel = parsed.params[0];
-	std::string targetNick = parsed.params[1];
+    std::string channelName = parsed.params[0];
+    std::string targetNick = parsed.params[1];
 
-	server->handleInviteCommand(clientFd, channel, targetNick);
+    // Retrieve the inviting client
+    Client *client = server->getClient(clientFd);
+    if (!client) {
+        std::cerr << "Inviting client not found" << std::endl;
+        return;
+    }
+
+    // Retrieve the target client
+    Client *targetClient = server->getClientByNickname(targetNick);
+    if (!targetClient) {
+        std::cerr << "Target client " << targetNick << " not found" << std::endl;
+        std::string response = "401 " + targetNick + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    // Retrieve the channel
+    Channel *channel = server->getChannel(channelName);
+    if (!channel) {
+        std::cerr << "Channel " << channelName << " does not exist" << std::endl;
+        std::string response = "403 " + channelName + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    // Check if the inviting client is an operator in the channel
+    if (!channel->isOperator(clientFd)) {
+        std::cerr << "Client " << clientFd << " is not an operator in channel " << channelName << std::endl;
+        std::string response = "482 " + channelName + " :You're not channel operator\r\n"; // ERR_CHANOPRIVSNEEDED
+        server->sendToClient(clientFd, response);
+        return;
+    }
+
+    // Invite the target client to the channel
+    int targetFd = targetClient->getClientFd();
+    channel->inviteUser(targetFd);
+
+    // Send the invite message to the target client
+    std::string inviteMessage = ":" + client->getNickname() + "!" + 
+        client->getUsername() + "@" + server->getHostname() + " INVITE " + 
+        targetNick + " :" + channelName + "\r\n";
+    server->sendToClient(targetFd, inviteMessage);
+
+    std::cout << "Client " << targetFd << " (" << targetClient->getNickname() << ") was invited to channel " 
+              << channelName << " by " << client->getNickname() << std::endl;
 }
 
 void topic(Server *server, int clientFd, const cmd_syntax &parsed) 

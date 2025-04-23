@@ -6,7 +6,7 @@
 /*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/08 19:20:16 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/22 11:01:57 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,6 +74,7 @@ class Server
 		Channel	*getChannel(const std::string &channelName);
 		Client	*getClient(int clientFd);
 		Client	*getClientByNickname(const std::string &nickname);
+		const std::string &getHostname() const { return hostname; }
 		
 	private:
 		int port;
@@ -84,6 +85,9 @@ class Server
 		std::vector<struct pollfd> pollfds;
 		std::unordered_map<int, std::string> clientBuffer;
 		std::vector<Client> clients;
+		std::string hostname;
+		
+		void retrieveHostname();
 };
 
 extern Server *serverInstance;
