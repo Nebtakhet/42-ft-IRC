@@ -291,8 +291,9 @@ void Server::handlePassCommand(int clientFd, const std::string &password)
     }
 }
 
-void Server::handlePartCommand(int clientFd, const std::string &channelName)
+void Server::handlePartCommand(int clientFd, const std::string &channelName, const cmd_syntax &parsed)
 {
+    (void) parsed;
     Channel *channel = getChannel(channelName);
     if (!channel) {
         std::cerr << "Channel " << channelName << " does not exist" << std::endl;
@@ -309,7 +310,6 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName)
     }
 
     channel->removeMember(clientFd);
-	getClient(clientFd)->leaveChannel(channelName);
     std::cout << "Client " << clientFd << " left channel " << channelName << std::endl;
 
     std::string response = ":" + getClient(clientFd)->getNickname() + " PART " + channelName + "\r\n";
@@ -518,3 +518,4 @@ Available commands: *****ADD A COMMAND LIST AS /HELP WOULD DO******
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
 }
+

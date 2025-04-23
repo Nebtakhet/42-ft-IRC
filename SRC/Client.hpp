@@ -32,6 +32,7 @@ class Client
         std::string		_mode;
         std::vector<std::string> _capabilities;
         bool            _authenticated;
+        bool            _operator;
         bool            _capNegotiation; // New flag for CAP negotiation state
 		bool			_welcomeSent; // Flag to check if welcome message has been sent
 		
@@ -57,6 +58,7 @@ class Client
         void			setRealname(std::string const &realname);
         std::string		getRealname()const;
 
+        bool            isOperator() {return _operator;}
         std::string&	getMode();
         void			addMode(const std::string &mode);
         void			removeMode(const std::string &mode);
