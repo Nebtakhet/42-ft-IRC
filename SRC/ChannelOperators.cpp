@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ChannelOperators.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 12:47:39 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/24 14:04:31 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,7 +213,19 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         return;
     }
 
-    Channel *channel = getChannel(channelName);
+	if (channelName.empty()) 
+	{
+		std::cerr << "Ignoring empty MODE command from client " << clientFd << std::endl;
+		return;
+	}
+
+	if (client->getUsername() == channelName)
+	{
+		std::cerr << "Ignoring MODE command for client " << clientFd << std::endl;
+		return;
+	}
+
+	Channel *channel = getChannel(channelName);
     if (!channel) 
     {
         sendToClient(clientFd, "403 " + channelName + " :No such channel\r\n");
