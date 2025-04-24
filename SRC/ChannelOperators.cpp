@@ -262,6 +262,7 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         } 
         else 
         {
+            std::cout<<"in here\n";
             channel->clearUserLimit();
         }
     } 
@@ -300,121 +301,8 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
     std::cout << "Client " << clientFd << " set mode " << currentFlag << modeChar << " for channel " << channelName << std::endl;
 }
 
-	
-
-
-
 void Channel::removeMember(int clientFd)
 {
     members.erase(clientFd);
-/*
-    // Use Server's getClient function to retrieve the client
-    Server *server = Server::serverInstance;
-    if (!server)
-    {
-        std::cerr << "Server instance not found" << std::endl;
-        return;
-    }
-
-    Client *client = server->getClient(clientFd);
-    if (client)
-    {
-        // Clear the client's current channel
-        client->setCurrentChannel("");
-    }*/
 }
 
-
-/*
-///////////////DUMP
-
-        // Handle user modes (e.g., +i for invite only)
-        // i: Set/remove Invite-only channel
-        // t: Set/remove the restrictions of the TOPIC command to channel operators
-        // k: Set/remove the channel key (password)   
-        // o: Give/take channel operator privilege
-
-        if (mode == "+i")
-		{
-            channel->setInviteOnly(true);
-            client->addMode("i");
-            std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
-            sendToClient(clientFd, response);
-            std::cout << "Set user mode " << mode << " for client " << clientFd << std::endl;
-        }
-		else if (mode == "-i")
-		{
-            channel->setInviteOnly(false);
-            client->removeMode("i");
-            std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + "\r\n";
-            sendToClient(clientFd, response);
-            std::cout << "Removed user mode " << mode << " for client " << clientFd << std::endl;*/
-        
-       /* else if (mode == "-t") 
-        else if (mode == "+t")
-        else if (mode == "-k")
-        else if (mode == "+k")
-        else if (mode == "-o")
-        else if (mode == "+o")
-		else
-            sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
-        return;
-    }
-    
-    
-    Channel *channel = getChannel(target);
-    if (!channel)
-	{
-        sendToClient(clientFd, "403 " + target + " :No such channel\r\n");
-        return;
-    }
-
-    if (!channel->isOperator(clientFd))
-	{
-        sendToClient(clientFd, "482 " + target + " :You're not channel operator\r\n");
-        return;
-    }
-
-    if (mode == "+i")
-        channel->setInviteOnly(true);
-    else if (mode == "-i")
-        channel->setInviteOnly(false);
-    else if (mode == "+k")
-        channel->setKey(parameter);
-    else if (mode == "-k")
-        channel->clearKey();
-    else if (mode == "+l")
-        channel->setUserLimit(std::stoi(parameter));
-    else if (mode == "-l")
-        channel->clearUserLimit();
-    else if (mode == "+t")
-        channel->setTopicProtected(true);
-    else if (mode == "-t")
-        channel->setTopicProtected(false);
-    else if (mode == "+o" || mode == "-o")
-	{
-        Client *targetClient = getClientByNickname(parameter);
-        if (!targetClient)
-		{
-            sendToClient(clientFd, "401 " + parameter + " :No such nick/channel\r\n");
-            return;
-        }
-
-        int targetFd = targetClient->getClientFd();
-        if (mode == "+o")
-            channel->addOperator(targetFd);
-        else
-            channel->removeOperator(targetFd);
-    }
-	else
-	{
-        sendToClient(clientFd, "501 :Unknown MODE flag\r\n");
-        return;
-    }
-
-    std::string response = ":" + client->getNickname() + " MODE " + target + " " + mode + " " + parameter + "\r\n";
-    for (int memberFd : channel->getMembers())
-        sendToClient(memberFd, response);
-
-    std::cout << "Client " << clientFd << " set mode " << mode << " for channel " << target << std::endl;
-*/

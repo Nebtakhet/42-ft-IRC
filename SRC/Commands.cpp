@@ -291,17 +291,21 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
         {
             std::string parameter;
 
-            if ((modeChar == 'k' || modeChar == 'o' || modeChar == 'l') && paramIndex < parsed.params.size()) 
+            if ((modeChar == 'k' || modeChar == 'o' || (modeChar == 'l' && currentFlag == '+')) && paramIndex < parsed.params.size()) 
             {
                 parameter = parsed.params[paramIndex];
                 paramIndex++;
             } 
-            else if (modeChar == 'k' || modeChar == 'o' || modeChar == 'l') 
+            else if (modeChar == 'k' || modeChar == 'o' || (modeChar == 'l' && currentFlag == '+')) 
             {
                 std::cerr << "Not enough parameters for MODE command" << std::endl;
                 std::string response = "461 MODE :Not enough parameters\r\n"; 
                 server->sendToClient(clientFd, response);
                 return;
+            } 
+            else if (modeChar == 'l' && currentFlag == '-') 
+            {
+                parameter = ""; // No parameter needed for -l
             }
 
             server->handleModeCommand(clientFd, channelName, currentFlag, modeChar, parameter);
