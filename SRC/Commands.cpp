@@ -73,8 +73,9 @@ void join(Server *server, int clientFd, const cmd_syntax &parsed) {
     }
 
     std::string channel = parsed.params[0];
+    std::string providedKey = parsed.params.size() > 1 ? parsed.params[1] : "";
     std::cout << "Handling JOIN command for client " << clientFd << " with channel " << channel << std::endl;
-    server->handleJoinCommand(clientFd, channel);
+    server->handleJoinCommand(clientFd, channel, providedKey);
 }
 
 void user(Server *server, int clientFd, const cmd_syntax &parsed) {
