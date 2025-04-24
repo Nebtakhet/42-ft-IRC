@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 09:47:00 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/24 13:10:00 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,6 +62,10 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
         return client.getClientFd() == clientFd;
     });
 
+    if (parsed.name == "CAP") {
+        it->setCapNegotiation(true); // Start CAP negotiation
+    }
+    
     if (it != clients.end() && it->isCapNegotiating()) {
         // Allow all implemented commands during CAP negotiation
         if (parsed.name != "CAP" && parsed.name != "PASS" && parsed.name != "NICK" && parsed.name != "USER" &&
@@ -229,7 +233,7 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
         if (channel->isInviteOnly() && !channel->isInvited(clientFd))
         {
             std::cerr << "Client " << clientFd << " attempted to join invite-only channel " << channelName << " without an invitation" << std::endl;
-            std::string response = "473 " + channelName + " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
+            std::string response = "473 " + client->getNickname() + " " + channelName + " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
             sendToClient(clientFd, response);
             return;
         }
@@ -240,7 +244,7 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
             if (providedKey != channel->getKey())
             {
                 std::cerr << "Client " << clientFd << " provided an incorrect password for channel " << channelName << std::endl;
-                std::string response = "475 " + channelName + " :Cannot join channel (+k)\r\n"; 
+                std::string response = "475 " + client->getNickname() + " " +  channelName + " :Cannot join channel (+k) - bad key\r\n"; 
                 sendToClient(clientFd, response);
                 return;
             }
@@ -255,7 +259,7 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
         if (channel->userLimitReached())
         {
             std::cerr << "Client " << clientFd << " attempted to join channel " << channelName << " but it is full" << std::endl;
-            std::string response = "471 " + channelName + " :Cannot join channel (+l)\r\n"; 
+            std::string response = "471 " + client->getNickname() + " " + channelName + " :Cannot join channel (+l)\r\n"; 
             sendToClient(clientFd, response);
             return;
         }
@@ -546,6 +550,8 @@ void Server::sendWelcomeMessage(int clientFd, const Client &client) {
 ██╔══██║██║   ██║██║     ██╔══██║
 ██║  ██║╚██████╔╝███████╗██║  ██║
 ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
+
+NOTICE: THIS SERVER MANAGES UP TO 1000 CLIENTS! 
 
 Type /JOIN channel_name to create/join a channel
 or '/HELP' for a list of commands

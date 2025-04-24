@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Channel.hpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/08 18:02:50 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/23 19:00:02 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/24 12:47:27 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,8 @@
 # include <set>
 # include <string>
 
+# define MAX_CLIENTS 1000
+
 class Channel
 {
 	private:
@@ -28,7 +30,7 @@ class Channel
 		std::string		topic;
 		bool			topicProtected = false;
 		std::string		key;
-		int				userLimit = 5;
+		int				userLimit = 1000;
 		std::set<int>	invitedUsers;
 
 	public:
@@ -65,7 +67,7 @@ class Channel
 		const std::string	&getKey() const { return key; }
 
 		void	setUserLimit(int limit) { userLimit = limit; }
-		void	clearUserLimit() { userLimit = 0; }
+		void	clearUserLimit() { userLimit = 1000; }
 		bool	userLimitReached() const { return static_cast<int>(members.size()) >= userLimit; }
 		
 };

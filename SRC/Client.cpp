@@ -1,6 +1,6 @@
 #include "Client.hpp"
 
-Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(true) {} // Initialize _authenticated
+Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(false) {} // Initialize _authenticated
 
 Client::~Client() {}
 

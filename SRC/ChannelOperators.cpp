@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ChannelOperators.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/23 18:53:48 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/24 12:47:39 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -251,7 +251,18 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         {
             try 
             {
-                channel->setUserLimit(std::stoi(parameter));
+                int limit = std::stoi(parameter);
+                if (limit < 0) 
+                {
+                    sendToClient(clientFd, "461 MODE :Invalid parameter for +l\r\n");
+                    return;
+                }
+                if (limit == 0)
+                {
+                    channel->setUserLimit(MAX_CLIENTS);
+                }
+                else
+                    channel->setUserLimit(std::stoi(parameter));
             } 
             catch (const std::exception &e) 
             {
@@ -261,7 +272,6 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         } 
         else 
         {
-            std::cout<<"in here\n";
             channel->clearUserLimit();
         }
     } 
