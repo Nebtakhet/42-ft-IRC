@@ -57,17 +57,26 @@ void Server::handleConnections()
 
     while ((clientFd = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen)) >= 0)
     {
+        // Check if the maximum number of clients is reached
+        if (clients.size() >= MAX_CLIENTS)
+        {
+            std::cerr << "Maximum number of clients reached. Rejecting connection from client " << clientFd << std::endl;
+            std::string response = "ERROR :Server full. Maximum number of clients reached.\r\n";
+            send(clientFd, response.c_str(), response.size(), 0);
+            close(clientFd);
+            continue;
+        }
+
         if (fcntl(clientFd, F_SETFL, O_NONBLOCK) == -1)
         {
             std::cerr << "Failed to set client socket to non-blocking" << std::endl;
             close(clientFd);
             continue;
         }
+
         pollfds.push_back({clientFd, POLLIN, 0});
         clients.emplace_back(clientFd); 
         std::cout << "New client connected: " << clientFd << std::endl;
-
-        // Removed automatic join to default channel
     }
 
     if (errno == EWOULDBLOCK || errno == EAGAIN)
