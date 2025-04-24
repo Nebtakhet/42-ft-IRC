@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/22 11:01:57 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/24 09:46:25 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,7 @@ class Server
 		void handleCapReq(int clientFd, const std::vector<std::string> &capabilities);
 		void handleCapEnd(int clientFd);
 		void sendToClient(int clientFd, const std::string &message);
-		void handleJoinCommand(int clientFd, const std::string &channel);
+		void handleJoinCommand(int clientFd, const std::string &channel, const std::string &providedKey);
 		void handlePartCommand(int clientFd, const std::string &channel, const cmd_syntax &parsed);
 		void handlePrivmsgCommand(int clientFd, const std::string &target, const std::string &message);
 		void handleHelpCommand(int clientFd);

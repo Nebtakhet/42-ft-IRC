@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 09:29:53 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/24 09:47:00 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -211,7 +211,7 @@ void Server::handleCapEnd(int clientFd) {
     // No need to send a CAP END response; that was the damn mistake, motherfucker!!!!
 }
 
-void Server::handleJoinCommand(int clientFd, const std::string &channelName)
+void Server::handleJoinCommand(int clientFd, const std::string &channelName, const std::string &providedKey)
 {
     Client *client = getClient(clientFd);
 
@@ -233,14 +233,34 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName)
             sendToClient(clientFd, response);
             return;
         }
+
+
+        if (channel->hasKey())
+        {
+            if (providedKey != channel->getKey())
+            {
+                std::cerr << "Client " << clientFd << " provided an incorrect password for channel " << channelName << std::endl;
+                std::string response = "475 " + channelName + " :Cannot join channel (+k)\r\n"; 
+                sendToClient(clientFd, response);
+                return;
+            }
+        }
+
+        if (channel->isMember(clientFd))
+        {
+            std::cerr << "Client " << clientFd << " is already in channel " << channelName << std::endl;
+            return;
+        }
+
+        if (channel->userLimitReached())
+        {
+            std::cerr << "Client " << clientFd << " attempted to join channel " << channelName << " but it is full" << std::endl;
+            std::string response = "471 " + channelName + " :Cannot join channel (+l)\r\n"; 
+            sendToClient(clientFd, response);
+            return;
+        }
     }
 
-    if (channel->isMember(clientFd))
-    {
-        std::cerr << "Client " << clientFd << " is already in channel " << channelName << std::endl;
-        return;
-    }
-//add the check for the limit reached or not
     channel->addMember(clientFd);
     client->joinChannel(channelName);
     std::cout << "Added client " << clientFd << " to channel " << channelName << std::endl;
