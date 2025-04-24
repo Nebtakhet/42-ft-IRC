@@ -142,14 +142,27 @@ void help(Server *server, int clientFd, const cmd_syntax &parsed) {
 
     std::string response =
         "Available commands:\r\n"
-        "NICK <nickname> - Set your nickname\r\n"
-        "USER <username> <hostname> <servername> :<realname> - Register your username\r\n"
-        "JOIN <#channel> - Join a channel\r\n"
-        "PART <#channel> - Leave a channel\r\n"
-        "PRIVMSG <target> <message> - Send a private message to a user or channel\r\n"
-        "PING <server> - Ping the server\r\n"
-        "PASS <password> - Authenticate with the server\r\n"
-        "HELP - Show this help message\r\n";
+        "NICK nickname - Set your nickname\r\n"
+        "JOIN channel - Join a channel\r\n"
+        "PART channel - Leave a channel\r\n"
+        "KICK channel nickname - Kick a user from a channel\r\n"
+        "TOPIC channel topic - Set the topic of a channel\r\n"
+        "INVITE channel nickname - Invite a user to a channel\r\n"
+        "PRIVMSG target message - Send a private message to a user or channel\r\n"
+        "PASS password - Authenticate with the server\r\n"
+        "MODE channel mode - Set the mode of a channel\r\n"
+        "MODE flags:\r\n"
+        "    +i - Invite only\r\n"
+        "    -i - Not invite only\r\n"
+        "    +k key - Set a key for the channel\r\n"
+        "    -k key - Remove the key from the channel\r\n"
+        "    +l limit - Set a limit for the number of users in the channel\r\n"
+        "    -l - Remove the limit from the channel\r\n"
+        "    +o nickname - Give operator status to a user\r\n"
+        "    -o nickname - Remove operator status from a user\r\n"
+        "    +t - Topic protected\r\n"
+        "    -t - Topic not protected\r\n"
+        "HELP - Show this help message;\r\n";
 
     server->sendToClient(clientFd, response);
 }

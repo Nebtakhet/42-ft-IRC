@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/22 11:01:49 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/24 09:29:53 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -520,13 +520,16 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
 void Server::sendWelcomeMessage(int clientFd, const Client &client) {
     std::string asciiArt = R"(
     
-██╗  ██╗ ██████╗ ██╗      █████╗    ██╗██████╗  ██████╗    ███████╗███████╗██████╗ ██╗   ██╗███████╗██████╗ 
-██║  ██║██╔═══██╗██║     ██╔══██╗   ██║██╔══██╗██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║██╔════╝██╔══██╗
-███████║██║   ██║██║     ███████║   ██║██████╔╝██║         ███████╗█████╗  ██████╔╝██║   ██║█████╗  ██████╔╝
-██╔══██║██║   ██║██║     ██╔══██║   ██║██╔══██╗██║         ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝██╔══╝  ██╔══██╗
-██║  ██║╚██████╔╝███████╗██║  ██║   ██║██║  ██║╚██████╗    ███████║███████╗██║  ██║ ╚████╔╝ ███████╗██║  ██║
-╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝   ╚═╝╚═╝  ╚═╝ ╚═════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ╚══════╝╚═╝  ╚═╝
-Available commands: *****ADD A COMMAND LIST AS /HELP WOULD DO******
+██╗  ██╗ ██████╗ ██╗      █████╗ 
+██║  ██║██╔═══██╗██║     ██╔══██╗
+███████║██║   ██║██║     ███████║
+██╔══██║██║   ██║██║     ██╔══██║
+██║  ██║╚██████╔╝███████╗██║  ██║
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
+
+Type /JOIN channel_name to create/join a channel
+or '/HELP' for a list of commands
+
     )";
     
     std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\n\n";
