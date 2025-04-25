@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/25 11:40:51 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/25 12:21:52 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -295,6 +295,8 @@ void Server::handlePassCommand(int clientFd, const std::string &password)
         else
         {
             std::cerr << "Client " << clientFd << " provided incorrect password" << std::endl;
+            std::string response = "464 :Password incorrect\r\n";
+            sendToClient(clientFd, response);
             removeClient(clientFd);
         }
     }
