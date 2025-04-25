@@ -1,9 +1,21 @@
-#ifndef COMMANDS_HPP
-#define COMMANDS_HPP
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Commands.hpp                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/25 11:23:17 by dbejar-s          #+#    #+#             */
+/*   Updated: 2025/04/25 11:27:39 by dbejar-s         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Parsing.hpp"
+#ifndef COMMANDS_HPP
+# define COMMANDS_HPP
+
+# include "Server.hpp"
+# include "Client.hpp"
+# include "Parsing.hpp"
 
 void nick(Server *server, int clientFd, const cmd_syntax &parsed);
 void cap(Server *server, int clientFd, const cmd_syntax &parsed);
@@ -16,7 +28,6 @@ void privmsg(Server *server, int clientFd, const cmd_syntax &parsed);
 void help(Server *server, int clientFd, const cmd_syntax &parsed);
 void who(Server *server, int clientFd, const cmd_syntax &parsed);
 void quit(Server *server, int clientFd, const cmd_syntax &parsed);
-
 void kick(Server *server, int clientFd, const cmd_syntax &parsed);
 void invite(Server *server, int clientFd, const cmd_syntax &parsed);
 void topic(Server *server, int clientFd, const cmd_syntax &parsed);

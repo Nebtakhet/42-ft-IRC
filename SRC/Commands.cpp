@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Commands.cpp                                       :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/25 11:23:11 by dbejar-s          #+#    #+#             */
+/*   Updated: 2025/04/25 11:31:14 by dbejar-s         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Commands.hpp"
 
 void nick(Server *server, int clientFd, const cmd_syntax &parsed) {
@@ -60,14 +72,14 @@ void join(Server *server, int clientFd, const cmd_syntax &parsed) {
             return;
         }
 
-        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n"; // ERR_NOTREGISTERED
+        std::string response = "451 JOIN :You cannot join a channel during CAP negotiation\r\n";
         server->sendToClient(clientFd, response);
         return;
     }
 
     if (parsed.params.empty() || parsed.params[0].empty()) {
         std::cerr << "No channel provided for JOIN command from client " << clientFd << std::endl;
-        std::string response = "461 JOIN :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 JOIN :Not enough parameters\r\n";
         server->sendToClient(clientFd, response);
         return;
     }
@@ -81,7 +93,7 @@ void join(Server *server, int clientFd, const cmd_syntax &parsed) {
 void user(Server *server, int clientFd, const cmd_syntax &parsed) {
     if (parsed.params.size() < 3 || parsed.message.empty()) {
         std::cerr << "Not enough parameters for USER command" << std::endl;
-        std::string response = "461 USER :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 USER :Not enough parameters\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
@@ -117,7 +129,7 @@ void ping(Server *server, int clientFd, const cmd_syntax &parsed) {
 void part(Server *server, int clientFd, const cmd_syntax &parsed) {
     if (parsed.params.empty()) {
         std::cerr << "No channel provided for PART command" << std::endl;
-        std::string response = "461 PART :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 PART :Not enough parameters\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
@@ -129,7 +141,7 @@ void part(Server *server, int clientFd, const cmd_syntax &parsed) {
 void privmsg(Server *server, int clientFd, const cmd_syntax &parsed) {
     if (parsed.params.empty() || parsed.message.empty()) {
         std::cerr << "No target or message provided for PRIVMSG command" << std::endl;
-        std::string response = "461 PRIVMSG :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 PRIVMSG :Not enough parameters\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
@@ -141,7 +153,7 @@ void privmsg(Server *server, int clientFd, const cmd_syntax &parsed) {
 }
 
 void help(Server *server, int clientFd, const cmd_syntax &parsed) {
-    (void)parsed; // The HELP command does not require parameters
+    (void)parsed; 
     server->handleHelpCommand(clientFd);
 }
 
@@ -175,7 +187,7 @@ void invite(Server *server, int clientFd, const cmd_syntax &parsed)
 {
     if (parsed.params.size() < 2) {
         std::cerr << "Not enough parameters for INVITE command" << std::endl;
-        std::string response = "461 INVITE :Not enough parameters\r\n"; // ERR_NEEDMOREPARAMS
+        std::string response = "461 INVITE :Not enough parameters\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
@@ -183,44 +195,38 @@ void invite(Server *server, int clientFd, const cmd_syntax &parsed)
     std::string channelName = parsed.params[0];
     std::string targetNick = parsed.params[1];
 
-    // Retrieve the inviting client
     Client *client = server->getClient(clientFd);
     if (!client) {
         std::cerr << "Inviting client not found" << std::endl;
         return;
     }
 
-    // Retrieve the target client
     Client *targetClient = server->getClientByNickname(targetNick);
     if (!targetClient) {
         std::cerr << "Target client " << targetNick << " not found" << std::endl;
-        std::string response = "401 " + targetNick + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+        std::string response = "401 " + targetNick + " :No such nick/channel\r\n";
         server->sendToClient(clientFd, response);
         return;
     }
 
-    // Retrieve the channel
     Channel *channel = server->getChannel(channelName);
     if (!channel) {
         std::cerr << "Channel " << channelName << " does not exist" << std::endl;
-        std::string response = "403 " + channelName + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+        std::string response = "403 " + channelName + " :No such channel\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
 
-    // Check if the inviting client is an operator in the channel
     if (!channel->isOperator(clientFd)) {
         std::cerr << "Client " << clientFd << " is not an operator in channel " << channelName << std::endl;
-        std::string response = "482 " + channelName + " :You're not channel operator\r\n"; // ERR_CHANOPRIVSNEEDED
+        std::string response = "482 " + channelName + " :You're not channel operator\r\n"; 
         server->sendToClient(clientFd, response);
         return;
     }
 
-    // Invite the target client to the channel
     int targetFd = targetClient->getClientFd();
     channel->inviteUser(targetFd);
 
-    // Send the invite message to the target client
     std::string inviteMessage = ":" + client->getNickname() + "!" + 
         client->getUsername() + "@" + server->getHostname() + " INVITE " + 
         targetNick + " :" + channelName + "\r\n";
@@ -243,7 +249,6 @@ void topic(Server *server, int clientFd, const cmd_syntax &parsed)
 	server->handleTopicCommand(clientFd, channel, topic);
 }
 
-// With my small brain i can only think of how to handle one mode at a time
 void mode(Server *server, int clientFd, const cmd_syntax &parsed) 
 {
     if (parsed.params.size() < 2) 
@@ -283,7 +288,7 @@ void mode(Server *server, int clientFd, const cmd_syntax &parsed)
             } 
             else if (modeChar == 'l' && currentFlag == '-') 
             {
-                parameter = ""; // No parameter needed for -l
+                parameter = "";
             }
 
             server->handleModeCommand(clientFd, channelName, currentFlag, modeChar, parameter);

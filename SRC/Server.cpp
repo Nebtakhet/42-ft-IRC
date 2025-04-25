@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:26:22 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 13:10:00 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/25 11:40:51 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,8 @@
 #include "Client.hpp"
 #include "Channel.hpp"
 
-
 Server *serverInstance = nullptr;
 
-/* Constructor calling setupSocket */
 Server::Server(int port, const std::string &password) 
     : port(port), password(password), serverSocket(-1), running(false)
 {
@@ -29,7 +27,6 @@ Server::Server(int port, const std::string &password)
     setupSocket();
 }
 
-/* Destructor calling closeServer */
 Server::~Server()
 {
 	closeServer();
@@ -63,21 +60,19 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
     });
 
     if (parsed.name == "CAP") {
-        it->setCapNegotiation(true); // Start CAP negotiation
+        it->setCapNegotiation(true);
     }
     
     if (it != clients.end() && it->isCapNegotiating()) {
-        // Allow all implemented commands during CAP negotiation
         if (parsed.name != "CAP" && parsed.name != "PASS" && parsed.name != "NICK" && parsed.name != "USER" &&
             parsed.name != "JOIN" && parsed.name != "PART" && parsed.name != "PRIVMSG" && parsed.name != "PING" &&
-            parsed.name != "QUIT" && parsed.name != "HELP" && parsed.name != "WHO" && parsed.name != "KICK" &&
+            parsed.name != "QUIT" && parsed.name != "INFO" && parsed.name != "WHO" && parsed.name != "KICK" &&
             parsed.name != "INVITE" && parsed.name != "TOPIC" && parsed.name != "MODE") {
             std::cerr << "Ignoring command " << parsed.name << " during CAP negotiation for client " << clientFd << std::endl;
             return;
         }
     }
 
-    // Process the command as usual
     if (parsed.name == "CAP")
         cap(this, clientFd, parsed);
     else if (parsed.name == "PASS")
@@ -96,7 +91,7 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
         ping(this, clientFd, parsed);
     else if (parsed.name == "QUIT")
         quit(this, clientFd, parsed);
-    else if (parsed.name == "HELP")
+    else if (parsed.name == "info" || parsed.name == "INFO")
         help(this, clientFd, parsed);
     else if (parsed.name == "WHO")
         who(this, clientFd, parsed);
@@ -111,17 +106,15 @@ void Server::handleIncomingMessage(const std::string &message, int clientFd) {
 	else
         std::cerr << "Unknown command: " << parsed.name << std::endl;
 
-
-    // Check if the client is fully registered
     if (it != clients.end() && it->isAuthenticated() && !it->getNickname().empty() && !it->getUsername().empty() && !it->isWelcomeSent())
 	{
         sendWelcomeMessage(clientFd, *it);
-        it->setWelcomeSent(true); // Mark the welcome message as sent
+        it->setWelcomeSent(true);
     }
 }
 
 void Server::handleNickCommand(int clientFd, const std::string &nickname) {
-    // Find the client by clientFd
+
     auto it = std::find_if(clients.begin(), clients.end(), [clientFd](const Client &client) {
         return client.getClientFd() == clientFd;
     });
@@ -130,21 +123,17 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
         std::string oldNickname = it->getNickname();
         std::string finalNickname = nickname;
 
-        // Ensure the nickname is unique
         while (std::find_if(clients.begin(), clients.end(), [&finalNickname](const Client &client) {
                    return client.getNickname() == finalNickname;
                }) != clients.end()) {
             finalNickname += "_";
         }
 
-        // Notify the client about the nickname change
         if (finalNickname != oldNickname) {
-            // Send the NICK command response to the client
             std::string response = ":" + oldNickname + "!" + it->getUsername() + 
-                "@" + hostname + " NICK :" + finalNickname + "\r\n"; // Include hostname
+                "@" + hostname + " NICK :" + finalNickname + "\r\n";
             sendToClient(clientFd, response);
 
-            // Notify all other clients in the same channels
             for (const std::string &channelName : it->getJoinedChannels()) {
                 Channel *channel = getChannel(channelName);
                 if (channel) {
@@ -156,11 +145,10 @@ void Server::handleNickCommand(int clientFd, const std::string &nickname) {
                 }
             }
 
-            // Update the client's nickname
             it->setNickname(finalNickname);
             std::cout << "Client " << clientFd << " changed nickname from " << oldNickname << " to " << finalNickname << std::endl;
         } else {
-            std::string errorResponse = "433 " + finalNickname + " :Nickname is already in use\r\n"; // ERR_NICKNAMEINUSE
+            std::string errorResponse = "433 " + finalNickname + " :Nickname is already in use\r\n";
             sendToClient(clientFd, errorResponse);
         }
     } else {
@@ -177,8 +165,6 @@ void Server::sendToClient(int clientFd, const std::string &message) {
 
     std::ostringstream time_stream;
     time_stream << std::put_time(now_tm, "%Y-%m-%d %H:%M:%S");
-
-    // DEBUGGING
     std::cout << time_stream.str() << " ******************** Sent to client " << clientFd << " >>> " << message << std::endl;
 }
 
@@ -208,11 +194,9 @@ void Server::handleCapEnd(int clientFd) {
     });
 
     if (it != clients.end()) {
-        it->setCapNegotiation(false); // Mark CAP negotiation as complete
+        it->setCapNegotiation(false);
         std::cout << "CAP negotiation ended for client " << clientFd << std::endl;
     }
-
-    // No need to send a CAP END response; that was the damn mistake, motherfucker!!!!
 }
 
 void Server::handleJoinCommand(int clientFd, const std::string &channelName, const std::string &providedKey)
@@ -233,12 +217,10 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
         if (channel->isInviteOnly() && !channel->isInvited(clientFd))
         {
             std::cerr << "Client " << clientFd << " attempted to join invite-only channel " << channelName << " without an invitation" << std::endl;
-            std::string response = "473 " + client->getNickname() + " " + channelName + " :Cannot join channel (+i)\r\n"; // ERR_INVITEONLYCHAN
+            std::string response = "473 " + client->getNickname() + " " + channelName + " :Cannot join channel (+i)\r\n";
             sendToClient(clientFd, response);
             return;
         }
-
-
         if (channel->hasKey())
         {
             if (providedKey != channel->getKey())
@@ -249,13 +231,11 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
                 return;
             }
         }
-
         if (channel->isMember(clientFd))
         {
             std::cerr << "Client " << clientFd << " is already in channel " << channelName << std::endl;
             return;
         }
-
         if (channel->userLimitReached())
         {
             std::cerr << "Client " << clientFd << " attempted to join channel " << channelName << " but it is full" << std::endl;
@@ -349,7 +329,7 @@ void Server::handlePartCommand(int clientFd, const std::string &channelName, con
     std::cout << "Client " << clientFd << " left channel " << channelName << std::endl;
 
     std::string response = ":" + getClient(clientFd)->getNickname() + "!" + 
-        getClient(clientFd)->getUsername() + "@" + hostname + " PART " + channelName + "\r\n"; // Include hostname
+        getClient(clientFd)->getUsername() + "@" + hostname + " PART " + channelName + "\r\n";
     sendToClient(clientFd, response);
 
     for (int memberFd : channel->getMembers()) {
@@ -371,25 +351,22 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
 
     std::string sender = client->getNickname();
 
-    // Check if the target is a channel
     if (target[0] == '#') {
         Channel *channel = getChannel(target);
         if (!channel) {
             std::cerr << "Channel " << target << " does not exist" << std::endl;
-            std::string response = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+            std::string response = "403 " + target + " :No such channel\r\n";
             sendToClient(clientFd, response);
             return;
         }
 
-        // Check if the client is a member of the channel
         if (!channel->isMember(clientFd)) {
             std::cerr << "Client " << clientFd << " is not a member of channel " << target << std::endl;
-            std::string response = "442 " + target + " :You're not on that channel\r\n"; // ERR_NOTONCHANNEL
+            std::string response = "442 " + target + " :You're not on that channel\r\n";
             sendToClient(clientFd, response);
             return;
         }
 
-        // Send the message to all clients in the channel except the sender
         std::string response = ":" + sender + " PRIVMSG " + target + " :" + message + "\r\n";
         for (int memberFd : channel->getMembers()) {
             if (memberFd != clientFd) {
@@ -397,26 +374,24 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
             }
         }
     } else {
-        // Target is a user
         Client *targetClient = getClientByNickname(target);
         if (!targetClient) {
             std::cerr << "User " << target << " does not exist" << std::endl;
-            std::string response = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+            std::string response = "401 " + target + " :No such nick/channel\r\n";
             sendToClient(clientFd, response);
             return;
         }
 
-        // Send the message to the target user
         int targetFd = targetClient->getClientFd();
         std::string response = ":" + sender + "!" + client->getUsername() + 
-            "@" + hostname + " PRIVMSG " + target + " :" + message + "\r\n"; // Include hostname
+            "@" + hostname + " PRIVMSG " + target + " :" + message + "\r\n";
         sendToClient(targetFd, response);
     }
 }
 
 void Server::handleHelpCommand(int clientFd) {
     std::string response =
-    "375 :- HELP Command List -\r\n" // Start of HELP list
+    "375 :- INFO Command List -\r\n"
     "372 :- NICK nickname - Set your nickname\r\n"
     "372 :- USER username hostname servername :realname - Register your username\r\n"
     "372 :- JOIN #channel - Join a channel\r\n"
@@ -427,8 +402,8 @@ void Server::handleHelpCommand(int clientFd) {
     "372 :- KICK #channel target - Kick a user from a channel\r\n"
     "372 :- INVITE target #channel - Invite a user to a channel\r\n"
     "372 :- QUIT message - Disconnect from the server\r\n"
-    "372 :- HELP - Show this help message\r\n"
-    "376 :- End of HELP list\r\n"; // End of HELP list
+    "372 :- INFO - Show this help message\r\n"
+    "376 :- End of INFO list\r\n";
 
 
     sendToClient(clientFd, response);
@@ -440,7 +415,6 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
 
     if (target.empty())
     {
-        // WHO without a target: list all users on the server
         for (const Client &client : clients) {
             response << client.getNickname() << " "
                      << client.getUsername() << " "
@@ -449,12 +423,11 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
     }
     else if (target[0] == '#')
     {
-        // WHO for a channel
         Channel *channel = getChannel(target);
         if (!channel)
         {
             std::cerr << "Channel " << target << " does not exist" << std::endl;
-            std::string errorResponse = "403 " + target + " :No such channel\r\n"; // ERR_NOSUCHCHANNEL
+            std::string errorResponse = "403 " + target + " :No such channel\r\n";
             sendToClient(clientFd, errorResponse);
             return;
         }
@@ -465,18 +438,17 @@ void Server::handleWhoCommand(int clientFd, const std::string &target)
             if (member)
             {
                 response << member->getNickname() << " " << member->getUsername() << 
-                    "@" << hostname << " " << member->getRealname() << "\r\n"; // Include hostname
+                    "@" << hostname << " " << member->getRealname() << "\r\n";
             }
         }
     }
     else
     {
-        // WHO for a specific user
         Client *targetClient = getClientByNickname(target);
         if (!targetClient)
         {
             std::cerr << "User " << target << " does not exist" << std::endl;
-            std::string errorResponse = "401 " + target + " :No such nick/channel\r\n"; // ERR_NOSUCHNICK
+            std::string errorResponse = "401 " + target + " :No such nick/channel\r\n";
             sendToClient(clientFd, errorResponse);
             return;
         }
@@ -506,7 +478,7 @@ void Server::handleQuitCommand(int clientFd, const std::string &quitMessage)
         if (channel.isMember(clientFd))
 		{
             std::string response = ":" + nickname + "!" + client->getUsername() + 
-                "@" + hostname + " QUIT :" + quitMessage + "\r\n"; // Include hostname
+                "@" + hostname + " QUIT :" + quitMessage + "\r\n";
             for (int memberFd : channel.getMembers())
 			{
                 if (memberFd != clientFd)
@@ -543,15 +515,13 @@ void Server::sendWelcomeMessage(int clientFd, const Client &client) {
 NOTICE: THIS SERVER MANAGES UP TO 1000 CLIENTS! 
 
 Type /JOIN channel_name to create/join a channel
-or '/HELP' for a list of commands
+or '/INFO' for a list of commands ('INFO' from netcat)
 
     )";
     
     std::string welcomeMessage = "001 " + client.getNickname() + " :Welcome to the Internet Relay Network " + client.getNickname() + "!" + client.getUsername() + "@localhost\n\n";
 
-    
             sendToClient(clientFd, welcomeMessage + asciiArt + "\r\n");
 
     std::cout << "Sent welcome message to client " << clientFd << std::endl;
 }
-

@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:24:45 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 09:46:25 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/25 11:28:23 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,14 +78,14 @@ class Server
 		
 	private:
 		int port;
-		std::string password;
-		int serverSocket;
-		bool running;
-		struct sockaddr_in serverAddress;
-		std::vector<struct pollfd> pollfds;
-		std::unordered_map<int, std::string> clientBuffer;
-		std::vector<Client> clients;
-		std::string hostname;
+		std::string 							password;
+		int 									serverSocket;
+		bool 									running;
+		struct sockaddr_in 						serverAddress;
+		std::vector<struct pollfd> 				pollfds;
+		std::unordered_map<int, std::string> 	clientBuffer;
+		std::vector<Client> 					clients;
+		std::string 							hostname;
 		
 		void retrieveHostname();
 };

@@ -1,10 +1,19 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ServerConnection.cpp                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/25 11:24:09 by dbejar-s          #+#    #+#             */
+/*   Updated: 2025/04/25 11:35:58 by dbejar-s         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Server.hpp"
 #include "Parsing.hpp"
 #include "Commands.hpp"
 
-/* Function to setup the socket. It creates a socket, sets it to non-blocking, 
-binds it to the server address and listens on it. It also adds the server socket
-to the pollfds vector. */
 void Server::setupSocket()
 {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -47,8 +56,6 @@ void Server::setupSocket()
     std::cout << "Socket setup complete. Listening on port " << port << std::endl;
 }
 
-/* Function to handle incoming connections. It accepts the connection, sets the client
-socket to non-blocking and adds it to the pollfds vector. */
 void Server::handleConnections()
 {
     struct sockaddr_in clientAddress;
@@ -57,7 +64,6 @@ void Server::handleConnections()
 
     while ((clientFd = accept(serverSocket, (struct sockaddr *)&clientAddress, &clientLen)) >= 0)
     {
-        // Check if the maximum number of clients is reached
         if (clients.size() >= MAX_CLIENTS)
         {
             std::cerr << "Maximum number of clients reached. Rejecting connection from client " << clientFd << std::endl;
@@ -84,9 +90,6 @@ void Server::handleConnections()
     std::cerr << "Failed to accept client connection: " << strerror(errno) << std::endl;
 }
 
-/* Function to handle incoming messages from clients. It reads the message, prints it
-to the console and adds it to the clientBuffer. If the client disconnects, it removes
-the client from the pollfds vector and closes the connection. */
 void Server::handleClient(int clientFd)
 {
     char buffer[512];
@@ -104,7 +107,6 @@ void Server::handleClient(int clientFd)
         std::ostringstream time_stream;
         time_stream << std::put_time(now_tm, "%Y-%m-%d %H:%M:%S");
 
-        // DEBUGGING
         std::cout << time_stream.str() << " >>>>>>>>>>>>>>>>>>>> Received from client " << clientFd << " >>> " << buffer << std::endl;
 
         size_t pos;
@@ -113,7 +115,6 @@ void Server::handleClient(int clientFd)
             std::string command = clientBuffer[clientFd].substr(0, pos);
             clientBuffer[clientFd].erase(0, pos + 1);
 
-            // Remove trailing '\r' if present
             if (!command.empty() && command.back() == '\r') {
                 command.pop_back();
             }
@@ -136,7 +137,6 @@ void Server::handleClient(int clientFd)
     }
 }
 
-/* Function to remove a client from the pollfds vector and close the connection. */
 void Server::removeClient(int clientFd)
 {
     close(clientFd);
@@ -173,7 +173,6 @@ void Server::removeClient(int clientFd)
     std::cout << "Client " << clientFd << " removed" << std::endl;
 }
 
-/* Function to close the server. It closes all client connections and the server socket. */
 void Server::closeServer()
 {
     for (size_t i = 0; i < pollfds.size(); i++)
@@ -187,8 +186,6 @@ void Server::closeServer()
     running = false;
 }
 
-/* Function to send messages to clients. It iterates through the pollfds vector and
-sends messages to clients that have messages in the clientBuffer. */
 void Server::sendMessage()
 {
     for (size_t i = pollfds.size(); i-- > 0;)
@@ -221,7 +218,6 @@ void Server::sendMessage()
     }
 }
 
-/* Function to add a message to the clientBuffer and set the POLLOUT event. */
 void Server::messageBuffer(int clientFd, const std::string &message)
 {
     clientBuffer[clientFd] += message;
@@ -236,9 +232,6 @@ void Server::messageBuffer(int clientFd, const std::string &message)
     }
 }
 
-/* Function to run the server. It polls the pollfds vector and calls handleConnections
-and handleClient when there is activity. It also calls sendMessage to send messages to
-clients. */
 void Server::run()
 {
     std::cout << "Server running on port " << port << " with password " << password << std::endl;
@@ -269,7 +262,6 @@ void Server::run()
     }
 }
 
-/* Function to handle a clean exit. It closes the server and exits with EXIT_SUCCESS. */
 void Server::cleanExit()
 {
 	for (const auto &pollfd : pollfds)

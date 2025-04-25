@@ -6,7 +6,7 @@
 /*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/08 18:02:50 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 12:47:27 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/04/25 11:25:17 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,7 @@ class Channel
 		std::string		topic;
 		bool			topicProtected = false;
 		std::string		key;
-		int				userLimit = 1000;
+		int				userLimit = MAX_CLIENTS;
 		std::set<int>	invitedUsers;
 
 	public:
@@ -50,26 +50,25 @@ class Channel
 		bool				isMember(int clientFd) const { return members.find(clientFd) != members.end(); }
 		const std::set<int>	&getMembers() const { return members; }
 		
-		void	addOperator(int clientFd) { operators.insert(clientFd); }
-		void	removeOperator(int clientFd) { operators.erase(clientFd); }
-		bool	isOperator(int clientFd) const { return operators.find(clientFd) != operators.end(); }
+		void				addOperator(int clientFd) { operators.insert(clientFd); }
+		void				removeOperator(int clientFd) { operators.erase(clientFd); }
+		bool				isOperator(int clientFd) const { return operators.find(clientFd) != operators.end(); }
 
-		void	setTopic(const std::string &newTopic) { topic = newTopic; }
-		void	setInviteOnly(bool inviteOnly) { this->inviteOnly = inviteOnly; }
-		void	setTopicProtected(bool topicProtected) { this->topicProtected = topicProtected; }
+		void				setTopic(const std::string &newTopic) { topic = newTopic; }
+		void				setInviteOnly(bool inviteOnly) { this->inviteOnly = inviteOnly; }
+		void				setTopicProtected(bool topicProtected) { this->topicProtected = topicProtected; }
 		
-		void	inviteUser(int clientFd) { invitedUsers.insert(clientFd); }
-		bool	isInvited(int clientFd) const { return invitedUsers.find(clientFd) != invitedUsers.end(); }
+		void				inviteUser(int clientFd) { invitedUsers.insert(clientFd); }
+		bool				isInvited(int clientFd) const { return invitedUsers.find(clientFd) != invitedUsers.end(); }
 		
 		void				setKey(const std::string &newKey) { key = newKey; }
 		void				clearKey() { key.clear(); }
 		bool				hasKey() const { return !key.empty(); }
 		const std::string	&getKey() const { return key; }
 
-		void	setUserLimit(int limit) { userLimit = limit; }
-		void	clearUserLimit() { userLimit = 1000; }
-		bool	userLimitReached() const { return static_cast<int>(members.size()) >= userLimit; }
-		
+		void				setUserLimit(int limit) { userLimit = limit; }
+		void				clearUserLimit() { userLimit = MAX_CLIENTS; }
+		bool				userLimitReached() const { return static_cast<int>(members.size()) >= userLimit; }	
 };
 
 #endif

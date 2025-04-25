@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/25 11:22:38 by dbejar-s          #+#    #+#             */
+/*   Updated: 2025/04/25 11:26:37 by dbejar-s         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef CLIENT_HPP
 # define CLIENT_HPP
 
@@ -22,46 +34,45 @@
 class Client
 {
     private:
-        int				_clientFd;
-        std::string		_read_buffer;
-        std::string		_send_buffer;
-        std::string		_nickname;
-        std::string		_old_nickname;
-        std::string		_username;
-        std::string		_realname;
-        std::string		_mode;
-        std::vector<std::string> _capabilities;
-        bool            _authenticated;
-        bool            _operator;
-        bool            _capNegotiation; // New flag for CAP negotiation state
-		bool			_welcomeSent; // Flag to check if welcome message has been sent
+        int				            _clientFd;
+        std::string		            _read_buffer;
+        std::string		            _send_buffer;
+        std::string		            _nickname;
+        std::string		            _old_nickname;
+        std::string		            _username;
+        std::string		            _realname;
+        std::string		            _mode;
+        std::vector<std::string>    _capabilities;
+        bool                        _authenticated;
+        bool                        _operator;
+        bool                        _capNegotiation; 
+		bool			            _welcomeSent;
 		
         std::set<std::string> joinedChannels;
 
-    
     public:
         Client(int clientFd);
         ~Client();
         
-        int				getClientFd()const;
-        void			setNickname(std::string const &nickname);
-        std::string&	getReadBuffer();
-        void			setReadBuffer(std::string const &buf);
-        std::string&	getSendBuffer();
-        void			setSendBuffer(std::string const &buf);
+        int				    getClientFd()const;
+        void			    setNickname(std::string const &nickname);
+        std::string&	    getReadBuffer();
+        void			    setReadBuffer(std::string const &buf);
+        std::string&	    getSendBuffer();
+        void			    setSendBuffer(std::string const &buf);
 
-        const std::string& getNickname() const; 
-        void			setOldNickname(std::string const &nickname);
-        std::string&	getOldNickname();
-        void			setUsername(std::string const &username);
-        std::string		getUsername()const;
-        void			setRealname(std::string const &realname);
-        std::string		getRealname()const;
+        const std::string&  getNickname() const; 
+        void			    setOldNickname(std::string const &nickname);
+        std::string&	    getOldNickname();
+        void			    setUsername(std::string const &username);
+        std::string		    getUsername()const;
+        void			    setRealname(std::string const &realname);
+        std::string		    getRealname()const;
 
-        bool            isOperator() {return _operator;}
-        std::string&	getMode();
-        void			addMode(const std::string &mode);
-        void			removeMode(const std::string &mode);
+        bool                isOperator() {return _operator;}
+        std::string&	    getMode();
+        void			    addMode(const std::string &mode);
+        void			    removeMode(const std::string &mode);
 
         void addCapability(const std::string &capability);
         bool hasCapability(const std::string &capability) const;

@@ -3,16 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:09:51 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/03/19 22:00:14 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/25 11:31:28 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 
-/* Function to check if the port number is valid. */
 bool validPort(const char *str, int &port)
 {
 	char *end;
@@ -25,7 +24,6 @@ bool validPort(const char *str, int &port)
 	return (true);
 }
 
-/* Signal handler to stop the server when signal SIGINT is received. */
 void	signalHandler(int signal)
 {
 	if (serverInstance)
@@ -53,12 +51,6 @@ int main(int argc, char **argv)
 
 	std::string password = argv[2];
 
-	//if(password.length < 5) // maybe a password function to make sure its sensible, nothing in the protocol tho
-	//{
-	//	std::cerr << "Please enter a proper password you lazy fuck!!!!." << std::endl;
-	//	return (EXIT_FAILURE);
-	//} 
-	
 	try
 	{
 		Server server(port, password);

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ChannelOperators.cpp                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/04/07 12:57:24 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/24 14:04:31 by cesasanc         ###   ########.fr       */
+/*   Updated: 2025/04/25 11:29:23 by dbejar-s         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,6 @@ Client *Server::getClientByNickname(const std::string &nickname)
 		return (&(*it));
 	return (nullptr);
 }
-
 
 void Server::handleKickCommand(int clientFd, const std::string &channelName, const std::string &target, const std::string &reason)
 {
@@ -100,7 +99,6 @@ void Server::handleKickCommand(int clientFd, const std::string &channelName, con
 		sendToClient(memberFd, kickMessage);
 	}
 
-		
 	sendToClient(targetFd, "You have been kicked from " + channelName + " by " + client->getNickname() + " : " + kickReason + "\r\n");
     channel->removeMember(targetFd);
 	targetClient->leaveChannel(channelName);
@@ -114,7 +112,6 @@ void Server::handleKickCommand(int clientFd, const std::string &channelName, con
     std::cout << "Client " << targetFd << " (" << targetClient->getNickname() << ") was kicked from channel " 
               << channelName << " by " << client->getNickname() << " with reason: " << kickReason << std::endl;
 }
-
 
 void Server::handleInviteCommand(int clientFd, const std::string &channelName, const std::string &target)
 {
@@ -203,7 +200,6 @@ void Server::handleTopicCommand(int clientFd, const std::string &channelName, co
     }
 }
 
-
 void Server::handleModeCommand(int clientFd, const std::string &channelName, char currentFlag, char modeChar, const std::string &parameter)
 {
     Client *client = getClient(clientFd);
@@ -219,11 +215,11 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
 		return;
 	}
 
-	if (client->getUsername() == channelName)
-	{
-		std::cerr << "Ignoring MODE command for client " << clientFd << std::endl;
-		return;
-	}
+	if (client->getUsername() == channelName || client->getNickname() == channelName) 
+    {
+        std::cerr << "Ignoring MODE command for client " << clientFd << std::endl;
+        return;
+    }
 
 	Channel *channel = getChannel(channelName);
     if (!channel) 
@@ -312,7 +308,6 @@ void Server::handleModeCommand(int clientFd, const std::string &channelName, cha
         return;
     }
 
-    // Notify all channel members about the mode change
     std::string response = ":" + client->getNickname() + " MODE " + channelName + " " + currentFlag + modeChar + " " + parameter + "\r\n";
     for (int memberFd : channel->getMembers()) 
     {
@@ -326,4 +321,3 @@ void Channel::removeMember(int clientFd)
 {
     members.erase(clientFd);
 }
-

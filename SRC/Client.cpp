@@ -1,6 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/04/25 11:22:28 by dbejar-s          #+#    #+#             */
+/*   Updated: 2025/04/25 11:29:37 by dbejar-s         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Client.hpp"
 
-Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(false) {} // Initialize _authenticated
+Client::Client(int clientFd) : _clientFd(clientFd), _authenticated(false), _capNegotiation(false) {}
 
 Client::~Client() {}
 
