@@ -282,8 +282,7 @@ void Server::handleJoinCommand(int clientFd, const std::string &channelName, con
     std::cout << "Client " << clientFd << " joined channel " << channelName << std::endl;
 }
 
-void Server::handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname)
-{
+void Server::handleUserCommand(int clientFd, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     (void)hostname;
     (void)servername;
 
@@ -291,14 +290,11 @@ void Server::handleUserCommand(int clientFd, const std::string &username, const 
         return client.getClientFd() == clientFd;
     });
 
-    if (it != clients.end())
-    {
+    if (it != clients.end()) {
         it->setUsername(username);
         it->setRealname(realname);
         std::cout << "Client " << clientFd << " set username to " << username << " and realname to " << realname << std::endl;
-    }
-    else
-    {
+    } else {
         std::cerr << "Client " << clientFd << " not found" << std::endl;
     }
 }
@@ -420,27 +416,20 @@ void Server::handlePrivmsgCommand(int clientFd, const std::string &target, const
 
 void Server::handleHelpCommand(int clientFd) {
     std::string response =
-        "Available commands:\r\n"
-        "NICK <nickname> - Set your nickname\r\n"
-        "USER <username> <hostname> <servername> :<realname> - Register your username\r\n"
-        "JOIN <#channel> - Join a channel\r\n"
-        "PART <#channel> - Leave a channel\r\n"
-        "PRIVMSG <target> <message> - Send a private message to a user or channel\r\n"
-        "PING <server> - Ping the server\r\n"
-        "PASS <password> - Authenticate with the server\r\n"
-        "WHO <target> - List information about users\r\n"
-        "QUIT <message> - Disconnect from the server\r\n"
-        "HELP - Show this help message\r\n"
-        "\r\n"
-        "Examples:\r\n"
-        "  NICK JohnDoe\r\n"
-        "  USER John localhost server :John Doe\r\n"
-        "  JOIN #general\r\n"
-        "  PART #general\r\n"
-        "  PRIVMSG #general :Hello everyone!\r\n"
-        "  PRIVMSG JohnDoe :Hello, John!\r\n"
-        "  PING irc.example.com\r\n"
-        "  QUIT :Goodbye!\r\n";
+    "375 :- HELP Command List -\r\n" // Start of HELP list
+    "372 :- NICK nickname - Set your nickname\r\n"
+    "372 :- USER username hostname servername :realname - Register your username\r\n"
+    "372 :- JOIN #channel - Join a channel\r\n"
+    "372 :- PART #channel - Leave a channel\r\n"
+    "372 :- PRIVMSG target message - Send a private message to a user or channel\r\n"
+    "372 :- MODE #channel mode - Set channel modes\r\n"
+    "372 :- TOPIC #channel topic - Set the topic for a channel\r\n"
+    "372 :- KICK #channel target - Kick a user from a channel\r\n"
+    "372 :- INVITE target #channel - Invite a user to a channel\r\n"
+    "372 :- QUIT message - Disconnect from the server\r\n"
+    "372 :- HELP - Show this help message\r\n"
+    "376 :- End of HELP list\r\n"; // End of HELP list
+
 
     sendToClient(clientFd, response);
 }
