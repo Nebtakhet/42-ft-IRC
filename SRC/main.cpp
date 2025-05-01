@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+        */
+/*   By: cesasanc <cesasanc@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/06 13:09:51 by cesasanc          #+#    #+#             */
-/*   Updated: 2025/04/25 11:31:28 by dbejar-s         ###   ########.fr       */
+/*   Updated: 2025/05/01 10:26:06 by cesasanc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,19 @@ bool validPort(const char *str, int &port)
 	if (errno == ERANGE || *end != '\0' || val < 1 || val > 65535)
 		return (false);
 	port = static_cast<int>(val);
+	return (true);
+}
+
+bool validPass(std::string str, std::string &password)
+{
+	if (str.length() < 1 || str.length() > 20)
+		return (false);
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		if (!isalnum(str[i]))
+			return (false);
+	}
+	password = str;
 	return (true);
 }
 
@@ -45,12 +58,17 @@ int main(int argc, char **argv)
 	int port;
 	if (!validPort(argv[1], port))
 	{
-		std::cerr << "Please enter a valid port number." << std::endl;
+		std::cerr << "Please enter a valid port number. (1-65535)" << std::endl;
 		return (EXIT_FAILURE);
 	}
 
-	std::string password = argv[2];
-
+	std::string password;
+	if (!validPass(argv[2], password))
+	{
+		std::cerr << "Please enter a valid password. (1-20 alphanumeric characters)" << std::endl;
+		return (EXIT_FAILURE);
+	}
+		
 	try
 	{
 		Server server(port, password);
