@@ -3,27 +3,32 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: lstorey <lstorey@student.42.fr>            +#+  +:+       +#+         #
+#    By: dbejar-s <dbejar-s@student.hive.fi>        +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/02/06 12:52:59 by cesasanc          #+#    #+#              #
-#    Updated: 2025/02/28 14:35:35 by cesasanc         ###   ########.fr        #
+#    Updated: 2025/04/25 11:10:24 by dbejar-s         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = ircserv
 
+SRCDIR = SRC
+OBJDIR = OBJECTS
+
 SRCS =	main.cpp \
         Server.cpp \
+		ServerConnection.cpp \
         Client.cpp \
         Parsing.cpp \
-        Commands.cpp
+        Commands.cpp \
+		ChannelOperators.cpp \
 
-OBJDIR = OBJECTS
-OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
+SRCS := $(addprefix $(SRCDIR)/, $(SRCS))
+OBJS = $(SRCS:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
 
 CFLAGS	=	-Wall -Wextra -Werror -std=c++11
 
-$(OBJDIR)/%.o: %.cpp
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(OBJDIR)
 	@c++ $(CFLAGS) -c $< -o $@
 
