@@ -62,6 +62,6 @@ Then send:
 ---
 
 ## 👥 Authors / Credits
-- Nebtakhet
-- dbejar-s — https://github.com/dbejar-s
-- Ginger-Leo — https://github.com/Ginger-Leo
+- César Sánchez — https://github.com/Nebtakhet
+- David Bejar — https://github.com/dbejar-s
+- Leo Storey — https://github.com/Ginger-Leo
